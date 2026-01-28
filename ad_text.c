@@ -26,8 +26,9 @@ static inline void ad_textElementAssignWithLength(ad_TextElement *el, const char
 }
 
 void ad_textElementAssign(ad_TextElement *el, const char *text) {
-    memcpy(el->text, text, AD_TEXT_ELEMENT_SIZE-1);
-    el->text[AD_TEXT_ELEMENT_SIZE-1] = 0x00;
+    size_t length = AD_MIN(AD_TEXT_ELEMENT_SIZE-1, strlen(text));
+    memcpy(el->text, text, length);
+    el->text[length] = 0x00;
 }
 
 void ad_textElementAssignFormatted(ad_TextElement *el, const char *format, ...) {
@@ -144,7 +145,7 @@ void ad_displayTextElementArray(uint16_t x, uint16_t y, size_t maximumWidth, siz
         ad_displayStringCropped(elements[i].text, x, y, maximumWidth, ad_s_con.objectBg, ad_s_con.objectFg);
         y++;
     }
-    ad_flush();
+    hal_flush();
 }
 
 void ad_printCenteredText(const char* str, uint16_t x, uint16_t y, uint16_t w, uint8_t colBg, uint8_t colFg) {
@@ -166,7 +167,7 @@ void ad_printCenteredText(const char* str, uint16_t x, uint16_t y, uint16_t w, u
         ad_displayStringCropped(str, x, y, w, colBg, colFg);
     }
 
-    ad_flush();
+    hal_flush();
 }
 
 
@@ -179,7 +180,7 @@ void ad_drawBackground(const char *title) {
         ad_fill(ad_s_con.width, ' ', 0, y, ad_s_con.backgroundFill, 0);
     }
 
-    ad_flush();
+    hal_flush();
 }
 
 void ad_fill(size_t length, char fill, uint16_t x, uint16_t y, uint8_t colBg, uint8_t colFg) {

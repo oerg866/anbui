@@ -40,8 +40,6 @@ static uint8_t s_biosColor = 0x00;
 static uint16_t s_consoleW;
 static uint16_t s_consoleH;
 
-static char s_printBuffer[512];
-
 static uint16_t s_oldCursorState = 0x0000;
 
 #ifndef _far /* This is purely for VSCode to stop bugging out.... */
@@ -123,7 +121,7 @@ static bool pl_dos_getVGADynamicStateTable(uint8_t _far *table) {
     return retAl == 0x1B;
 }
 
-void ad_initConsole(ad_ConsoleConfig *cfg) {
+void hal_initConsole(ad_ConsoleConfig *cfg) {
     uint8_t   dynamicVGAInfo[64];
     uint16_t *biosWidth  = (uint16_t *) &dynamicVGAInfo[0x05];
     uint8_t  *biosHeight = (uint8_t *)  &dynamicVGAInfo[0x22];
@@ -144,11 +142,11 @@ void ad_initConsole(ad_ConsoleConfig *cfg) {
 
     memset(s_printBuffer, 0x00, sizeof(s_printBuffer));
 
-    ad_restoreConsole();
+    hal_restoreConsole();
 
 }
 
-void ad_restoreConsole(void) {
+void hal_restoreConsole(void) {
     s_vgaMemory = MK_FP(0xB800, 0x0000);
     s_vgaMemoryUpperBound = s_vgaMemory + s_consoleH * s_consoleW * 2;
     s_cursorPtr = s_vgaMemory;
@@ -160,38 +158,26 @@ void ad_restoreConsole(void) {
     pl_dos_disableCursor();
 }
 
-void ad_deinitConsole(void) {
+void hal_deinitConsole(void) {
     pl_dos_restoreCursor();
 }
 
-void ad_setColor(uint8_t bg, uint8_t fg) {
+void hal_setColor(uint8_t bg, uint8_t fg) {
     s_biosColor = (bg & 0x07) << 4 | fg & 0x0F;
 }
 
-void ad_setCursorPosition(uint16_t x, uint16_t y) {
+void hal_setCursorPosition(uint16_t x, uint16_t y) {
     s_cursorPtr = &s_vgaMemory[x];
     while (y--) {
         s_cursorPtr = &s_cursorPtr[s_consoleW];
     }
 }
 
-void ad_print(const char *fmt, ...) {
-    va_list args;
-    int     length;
-    va_start(args, fmt);
-    length = vsnprintf(s_printBuffer, sizeof(s_printBuffer), fmt, args);
-    va_end(args);
-    
-    assert(length > 0);
-
-    pl_dos_putString(s_printBuffer, (uint16_t) length);
-}
-
-void ad_putString(const char *str) {
+void hal_putString(const char *str) {
     pl_dos_putString(str, (uint16_t) strlen(str));
 }
 
-void ad_putChar(char c, size_t count) {
+void hal_putChar(char c, size_t count) {
     pl_dos_BiosChar bc;
     bc.c = c;
     bc.attr = s_biosColor;
@@ -201,11 +187,11 @@ void ad_putChar(char c, size_t count) {
     pl_dos_advanceCursor(0);
 }    
 
-void ad_flush(void) {
+void hal_flush(void) {
     /* Nothing on DOS, it always displays everything immediately */
 }
 
-uint32_t ad_getKey(void) {
+uint32_t hal_getKey(void) {
     uint32_t c = (uint32_t) getch();
 
     /* Extended function */

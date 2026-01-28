@@ -29,7 +29,7 @@ static void ad_menuSelectItemAndDraw(ad_Menu *menu, size_t newSelection) {
     ad_displayStringCropped(menu->items[menu->currentSelection].text,   menu->itemX, menu->itemY + menu->currentSelection, menu->itemWidth, ad_s_con.objectBg, ad_s_con.objectFg);
     ad_displayStringCropped(menu->items[newSelection].text,             menu->itemX, menu->itemY + newSelection,           menu->itemWidth, ad_s_con.objectFg, ad_s_con.objectBg);
     menu->currentSelection = newSelection;
-    ad_flush();
+    hal_flush();
 }
 
 static bool ad_menuPaint(ad_Menu *menu) {
@@ -114,7 +114,7 @@ int32_t ad_menuExecute(ad_Menu *menu) {
     ad_menuPaint(menu);
 
     while (true) {
-        ch = ad_getKey();
+        ch = hal_getKey();
 
         if          (ch == AD_KEY_UP) {
             ad_menuSelectItemAndDraw(menu, (menu->currentSelection > 0) ? menu->currentSelection - 1 : menu->itemCount - 1);
@@ -123,7 +123,7 @@ int32_t ad_menuExecute(ad_Menu *menu) {
         } else if   (ch == AD_KEY_ENTER) {
             return menu->currentSelection;
         } else if   (menu->cancelable && (ch == AD_KEY_ESC)) {
-            return -1;
+            return AD_CANCELED;
         } 
 #if DEBUG
         else {
@@ -226,7 +226,7 @@ static bool ad_progressBoxPaint(ad_ProgressBox *pb) {
     ad_setColor(ad_s_con.progressFill, 0);
     ad_setCursorPosition(pb->boxX, pb->boxY);
 
-    ad_flush();
+    hal_flush();
 
     return true;
 }
@@ -277,7 +277,7 @@ void ad_progressBoxUpdate(ad_ProgressBox *pb, uint32_t progress) {
 
     ad_putChar(' ', newPaintLength);
 
-    ad_flush();
+    hal_flush();
 }
 
 void ad_progressBoxDestroy(ad_ProgressBox *pb) {
@@ -403,7 +403,7 @@ static int32_t ad_textFileBoxExecute(ad_TextFileBox *tfb) {
     ad_textFileBoxRedrawLines(tfb);
 
     while (true) {
-        ch = ad_getKey();
+        ch = hal_getKey();
 
         if          (ch == AD_KEY_UP) {
             ad_textFileBoxMove(tfb, -1);
@@ -515,15 +515,4 @@ int32_t ad_runCommandBox(const char *title, const char *command) {
     return -1;
 }
 #endif
-
-void ad_setFooterText(const char *footer) {
-    if (footer != NULL) {
-        ad_clearFooter();
-        ad_printCenteredText(footer, 0, ad_s_con.height - 1, ad_s_con.width, ad_s_con.footerBg, ad_s_con.footerFg);
-    }
-}
-
-void ad_clearFooter(void) {
-    ad_fill(ad_s_con.width, ' ', 0, ad_s_con.height - 1, ad_s_con.footerBg, ad_s_con.footerFg);
-}
 

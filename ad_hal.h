@@ -24,28 +24,28 @@
 /* This is a set of functions that a platform implementation needs to implement */
 
 /* Initializes console */
-void        ad_initConsole      (ad_ConsoleConfig *cfg);
+void        hal_initConsole         (ad_ConsoleConfig *cfg);
 /* Restores AnbUI console to its expected state after console was used externally */
-void        ad_restoreConsole   (void);
+void        hal_restoreConsole      (void);
 /* Deinitializes, e.g. sets screen back to original state */
-void        ad_deinitConsole    (void);
+void        hal_deinitConsole       (void);
 
 /* Set background and foreground color */
-void        ad_setColor         (uint8_t bg, uint8_t fg);
+void        hal_setColor            (uint8_t bg, uint8_t fg);
 /* Set cursor position */
-void        ad_setCursorPosition(uint16_t x, uint16_t y);
+void        hal_setCursorPosition   (uint16_t x, uint16_t y);
 /* Flush output */
-void        ad_flush            (void);
+void        hal_flush               (void);
 
 /* Print formatted string (printf-style) */
-void        ad_print            (const char *format, ...);
+void        hal_print               (const char *format, ...);
 /* Print string */
-void        ad_putString        (const char *str);
+void        hal_putString           (const char *str);
 /* Fill with character*/
-void        ad_putChar          (char c, size_t count);
+void        hal_putChar             (char c, size_t count);
 
 /* Get key. Special keys need to return the codes specified in anbui_priv.h */
-uint32_t    ad_getKey           (void);
+uint32_t    hal_getKey              (void);
 
 
 #endif

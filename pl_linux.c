@@ -46,7 +46,7 @@ static struct termios s_originalTermios;
 static const uint8_t colorLookup[]     = { 0, 4, 2, 6, 1, 5, 3, 7, 0, 4, 2, 6, 1, 5, 3, 7 };
 static const uint8_t attributeLookup[] = { 22, 22, 22, 22, 22, 22, 22, 22, 1, 1, 1, 1, 1, 1, 1, 1 };
 
-void ad_initConsole(ad_ConsoleConfig *cfg) {
+void hal_initConsole(ad_ConsoleConfig *cfg) {
     struct winsize w;
 
     cfg->width = 80;
@@ -59,10 +59,10 @@ void ad_initConsole(ad_ConsoleConfig *cfg) {
         cfg->height = w.ws_row;
     }
 
-    ad_restoreConsole();
+    hal_restoreConsole();
 }
 
-void ad_restoreConsole(void) {
+void hal_restoreConsole(void) {
     struct termios term;
     tcgetattr(STDIN_FILENO, &term);
     term.c_lflag &= ~(ICANON | ECHO);
@@ -70,43 +70,36 @@ void ad_restoreConsole(void) {
     printf(PL_LINUX_CL_HID);
 }
 
-void ad_deinitConsole(void) {
+void hal_deinitConsole(void) {
     tcsetattr(STDIN_FILENO, TCSANOW, &s_originalTermios);
     printf(PL_LINUX_CL_SHW);
     printf("\n");
 }
 
-inline void ad_setColor(uint8_t bg, uint8_t fg) {
+inline void hal_setColor(uint8_t bg, uint8_t fg) {
     AD_UNUSED_PARAMETER(attributeLookup);
     printf("\033[%u;%um\033[%u;%um", 0, colorLookup[bg] + 40, attributeLookup[fg], colorLookup[fg] + 30);
 }
 
-inline void ad_setCursorPosition(uint16_t x, uint16_t y) { 
+inline void hal_setCursorPosition(uint16_t x, uint16_t y) { 
     printf("\033[%u;%uH", (y + 1), (x + 1));
 }
 
-inline void ad_flush(void) { 
+inline void hal_flush(void) { 
     fflush(stdout); 
 }
 
-inline void ad_print(const char *fmt, ...) {
-    va_list args;
-    va_start(args, fmt);
-    vprintf(fmt, args);
-    va_end(args);
-}
-
-inline void ad_putString(const char *str) {
+inline void hal_putString(const char *str) {
     fputs(str, stdout);
 }
 
-inline void ad_putChar(char c, size_t count) {
+inline void hal_putChar(char c, size_t count) {
     while (count--) {
         putchar(c);
     }
 }
 
-uint32_t ad_getKey(void) {
+uint32_t hal_getKey(void) {
     int32_t ch = getchar();
     if ((ch & 0xff) == PL_LINUX_CH_ESCAPE)                      ch = (ch << 8) | (getchar() & 0xff);
     if ((ch & 0xff) == PL_LINUX_CH_SEQSTART)                    ch = (ch << 8) | (getchar() & 0xff);

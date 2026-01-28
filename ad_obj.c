@@ -65,7 +65,7 @@ void ad_objectUnpaint(ad_Object *obj) {
     /* Clear footer */
     ad_clearFooter();
 
-    ad_flush();
+    hal_flush();
 }
 
 uint16_t ad_objectGetContentX(ad_Object *obj) {
@@ -99,3 +99,15 @@ uint16_t ad_objectGetMaximumObjectHeight() {
 uint16_t ad_objectGetMaximumObjectWidth() {
     return ad_s_con.width;
 }
+
+void ad_setFooterText(const char *footer) {
+    if (footer != NULL) {
+        ad_clearFooter();
+        ad_printCenteredText(footer, 0, ad_s_con.height - 1, ad_s_con.width, ad_s_con.footerBg, ad_s_con.footerFg);
+    }
+}
+
+void ad_clearFooter(void) {
+    ad_fill(ad_s_con.width, ' ', 0, ad_s_con.height - 1, ad_s_con.footerBg, ad_s_con.footerFg);
+}
+

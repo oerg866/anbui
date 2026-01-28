@@ -27,7 +27,7 @@ static void pl_win32_showCursor(bool show) {
     SetConsoleCursorInfo(pl_win32_consoleHandle, &pl_win32_cursorInfo);
 }
 
-void ad_initConsole(ad_ConsoleConfig *cfg) {
+void hal_initConsole(ad_ConsoleConfig *cfg) {
     CONSOLE_SCREEN_BUFFER_INFO screenInfo;
 
     pl_win32_consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -42,53 +42,46 @@ void ad_initConsole(ad_ConsoleConfig *cfg) {
 
     GetConsoleMode(pl_win32_consoleHandle, &pl_win32_oldConsoleMode);
 
-    ad_restoreConsole();
+    hal_restoreConsole();
 }
 
-void ad_restoreConsole(void) {
+void hal_restoreConsole(void) {
     DWORD newConsoleMode = pl_win32_oldConsoleMode & ~ENABLE_ECHO_INPUT & ~ENABLE_LINE_INPUT & ~ENABLE_VIRTUAL_TERMINAL_INPUT & ~ENABLE_WRAP_AT_EOL_OUTPUT;
     SetConsoleMode(pl_win32_consoleHandle, newConsoleMode);
     pl_win32_showCursor(false);
 }
 
-void ad_deinitConsole() {
+void hal_deinitConsole() {
     SetConsoleMode(pl_win32_consoleHandle, pl_win32_oldConsoleMode);
     pl_win32_showCursor(true);
 }
 
-inline void ad_setColor(uint8_t bg, uint8_t fg) {
+inline void hal_setColor(uint8_t bg, uint8_t fg) {
     SetConsoleTextAttribute(pl_win32_consoleHandle, ((bg & 0x07) << 4) | (fg & 0x0F));
 }
 
-inline void ad_setCursorPosition(uint16_t x, uint16_t y) { 
+inline void hal_setCursorPosition(uint16_t x, uint16_t y) { 
     COORD pos;
     pos.X = x;
     pos.Y = y;
     SetConsoleCursorPosition(pl_win32_consoleHandle, pos);
 }
 
-inline void ad_flush(void) {
+inline void hal_flush(void) {
     fflush(stdout); 
 }
 
-inline void ad_print(const char *fmt, ...) {
-    va_list args;
-    va_start(args, fmt);
-    vfprintf(stdout, fmt, args);
-    va_end(args);
-}
-
-inline void ad_putString(const char *str) {
+inline void hal_putString(const char *str) {
     fputs(str, stdout);
 }
 
-inline void ad_putChar(char c, size_t count) {
+inline void hal_putChar(char c, size_t count) {
     while (count--) {
         putchar(c);
     }
 }
 
-uint32_t ad_getKey(void) {
+uint32_t hal_getKey(void) {
     uint32_t c = (uint32_t) getch();
 
     /* Extended function */

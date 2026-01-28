@@ -42,12 +42,13 @@ void ad_init(const char *title) {
     ad_s_con.backgroundFill = COLOR_BLUE;
 
     ad_initConsole(&ad_s_con);
+
     ad_textElementAssign(&ad_s_title, title);
     ad_drawBackground(ad_s_title.text);
 }
 
 void ad_restore(void) {
-    ad_restoreConsole();
+    hal_restoreConsole();
     ad_drawBackground(ad_s_title.text);
 }
 

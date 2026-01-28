@@ -84,4 +84,12 @@ int32_t         ad_textFileBox          (const char *title, const char *fileName
             (aka. pretty much everything other than DOS) */
 int32_t         ad_runCommandBox        (const char *title, const char *command);
 
+/*  Save the screen state internally so it can be recalled later. Doing this twice will overwrite the first backup.
+    This can be used to, for example, display an error message box and restore the previously displayed UI
+    after the error was handled. */
+void            ad_screenSaveState      (void);
+/*  Restores the screen after a previous "screenSaveState" call. */
+void            ad_screenLoadState      (void);
+
+
 #endif

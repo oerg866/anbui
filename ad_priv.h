@@ -57,7 +57,10 @@
 #define AD_MENU_ITEM_PADDING_H 2
 
 #define AD_FOOTER_MENU              "Make a selection (ENTER = Select)"
-#define AD_FOOTER_MENU_CANCELABLE   "Make a selection (ENTER = Select, ESC = cancel)"
+#define AD_FOOTER_MENU_CANCELABLE   "Make a selection (ENTER = Select, ESC = Cancel)"
+
+#define AD_FOOTER_MULTISELECTOR             "LEFT/RIGHT = Change Option, ENTER = Confirm"
+#define AD_FOOTER_MULTISELECTOR_CANCELABLE  "LEFT/RIGHT = Change Option, ENTER = Confirm, ESC = Cancel"
 
 #define AD_FOOTER_TEXTFILEBOX       "Use Cursor UP / DOWN or Page UP / DOWN to navigate the text."
 
@@ -73,6 +76,8 @@
 #define AD_ARRAY_SIZE(array) (sizeof((array))/sizeof((array)[0]))
 
 #define AD_ROUND_HACK_WTF(type, x) ((type)((x) + 0.5))
+
+#define AD_BUF_SIZE 512
 
 /* Structures */
 
@@ -132,6 +137,32 @@ struct ad_Menu {
     ad_TextElement     *items;
 };
 
+typedef struct {
+    size_t optionCount;
+    size_t selected;
+    ad_TextElement *options;
+} ad_MultiSelectorItem;
+
+struct ad_MultiSelector {
+    ad_Object               object;
+    bool                    cancelable;
+    bool                    hasToScroll;
+    uint32_t                selectedIndex;
+    uint16_t                width;
+    uint16_t                height;
+    uint16_t                itemX;
+    uint16_t                itemY;
+    uint16_t                itemWidth;
+    uint16_t                optionX;
+    uint16_t                optionY;
+    uint16_t                optionWidth;
+    size_t                  currentSelection;
+    size_t                  itemCount;
+    ad_MultiLineText       *prompt;
+    ad_TextElement         *items;
+    ad_MultiSelectorItem   *itemOptions;
+};
+
 struct ad_ConsoleConfig {
     uint16_t            width;
     uint16_t            height;
@@ -178,5 +209,13 @@ void                ad_printCenteredText                (const char *str, uint16
 void                ad_drawBackground                   (const char *title);
 void                ad_fill                             (size_t length, char fill, uint16_t x, uint16_t y, uint8_t colBg, uint8_t colFg);
 size_t              ad_getPadding                       (size_t totalLength, size_t lengthToPad);
+
+/* Screen state helpers */
+bool                ad_initConsole                      (struct ad_ConsoleConfig *cfg);
+void                ad_deinitConsole                    (void);
+void                ad_setColor                         (uint8_t bg, uint8_t fg);
+void                ad_setCursorPosition                (uint16_t x, uint16_t y);
+void                ad_putString                        (const char *str);
+void                ad_putChar                          (char c, size_t count);
 
 #endif
