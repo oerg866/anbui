@@ -24,6 +24,7 @@
 typedef struct ad_TextFileBox   ad_TextFileBox;
 typedef struct ad_ProgressBox   ad_ProgressBox;
 typedef struct ad_Menu          ad_Menu;
+typedef struct ad_MultiSelector ad_MultiSelector;
 typedef struct ad_ConsoleConfig ad_ConsoleConfig;
 
 /*  Initializes AnbUI.
@@ -91,5 +92,20 @@ void            ad_screenSaveState      (void);
 /*  Restores the screen after a previous "screenSaveState" call. */
 void            ad_screenLoadState      (void);
 
+/*  Create a multi selector menu with given title and prompt.
+    Cancelable means the menu can be cancelled using the ESC key.
+    Must be deallocated with ad_multiSelectorDestroy */
+ad_MultiSelector *ad_multiSelectorCreate(const char *title, const char *prompt, bool cancelable);
+/*  Displays the multi selector menu and lets the user modify options.
+    Returns values: 1) 0 if the user pressed enter
+                    2) AD_CANCELED for a cancelled menu (if menu was created as 'cancelable')
+                    3) AD_ERROR if something blew up (null pointer or something) */
+int32_t         ad_multiSelectorExecute (ad_MultiSelector *menu);
+/*  Adds an item + options to the multi slelector menu */
+void            ad_multiSelectorAddItem (ad_MultiSelector *obj, const char *label, size_t optionCount, const char *options[]);
+/*  Deallocates the multi selector menu */
+void            ad_multiSelectorDestroy (ad_MultiSelector *menu);
+/*  Get the selected option for a multi selector item. */
+size_t          ad_multiSelectorGet     (ad_MultiSelector *menu, size_t index);
 
 #endif

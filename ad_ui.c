@@ -516,3 +516,205 @@ int32_t ad_runCommandBox(const char *title, const char *command) {
 }
 #endif
 
+static size_t ad_multiSelectorOptionsGetLongestLength(ad_MultiSelector *menu) {
+    size_t i = 0;
+    size_t length = 0;
+    for (i = 0; i < menu->itemCount; i++) {
+        ad_MultiSelectorItem *op = &menu->itemOptions[i];
+        length = AD_MAX(length, ad_textElementArrayGetLongestLength(op->optionCount, op->options));
+    }
+    return length;
+}
+
+ad_MultiSelectorItem *ad_multiSelectorOptionArrayResize(ad_MultiSelectorItem *ptr, size_t newCount) {
+    ptr = realloc(ptr, newCount * sizeof(ad_MultiSelectorItem));
+    if (ptr) memset(&ptr[newCount-1], 0, sizeof(ad_MultiSelectorItem));
+    return ptr;
+}
+
+static void ad_multiSelectorOptionAssign(ad_MultiSelectorItem *item, size_t optionCount, const char *options[]) {
+    size_t optionIndex = 0;
+    
+    item->optionCount = optionCount;
+    item->selected = 0;
+    item->options = ad_textElementArrayResize(item->options, optionCount);
+
+    assert(item->options);
+
+    for (optionIndex = 0; optionIndex < optionCount; optionIndex++) {
+        ad_textElementAssign(&item->options[optionIndex], options[optionIndex]);
+    }
+}
+
+static void ad_displayMultiSelectorOptions(ad_MultiSelector *menu) {
+    size_t i;
+    size_t y = menu->itemY;
+    size_t x = menu->optionX;
+    size_t maximumWidth = menu->optionWidth;
+    for (i = 0; i < menu->itemCount; i++) {
+        size_t selectedIndex = menu->itemOptions[i].selected;
+        ad_displayStringCropped(menu->itemOptions[i].options[selectedIndex].text, x, y, maximumWidth, ad_s_con.objectBg, ad_s_con.objectFg);
+        y++;
+    }
+    hal_flush();
+}
+
+static const char *ad_multiSelectorOptionText(ad_MultiSelector *menu, size_t itemIndex) {
+    ad_MultiSelectorItem *item = &menu->itemOptions[itemIndex];
+    assert(item);
+    return item->options[item->selected].text;
+}
+
+static void ad_multiSelectorSelectOptionAndDraw(ad_MultiSelector *menu, size_t newSelection) {
+    assert(menu);
+    ad_displayStringCropped(ad_multiSelectorOptionText(menu, menu->currentSelection),   menu->optionX, menu->optionY + menu->currentSelection, menu->optionWidth, ad_s_con.objectBg, ad_s_con.objectFg);
+    ad_displayStringCropped(ad_multiSelectorOptionText(menu, newSelection),             menu->optionX, menu->optionY + newSelection,           menu->optionWidth, ad_s_con.objectFg, ad_s_con.objectBg);
+    menu->currentSelection = newSelection;
+    hal_flush();
+}
+
+
+static bool ad_multiSelectorPaint(ad_MultiSelector *menu) {
+    size_t maximumContentWidth = ad_objectGetMaximumContentWidth();
+    size_t maximumPromptWidth = 0;
+    size_t maximumItemWidth;
+    size_t windowContentWidth;
+    size_t promptHeight = (menu->prompt != NULL) ? menu->prompt->lineCount : 0;
+    
+    AD_RETURN_ON_NULL(menu, false);
+
+    /* Get the length of the longest menu item */
+    maximumItemWidth = ad_textElementArrayGetLongestLength(menu->itemCount, menu->items);
+      /* Get the length of the longest option item */
+    menu->optionWidth = ad_multiSelectorOptionsGetLongestLength(menu);
+    maximumItemWidth += 1 + menu->optionWidth;
+
+    windowContentWidth = maximumItemWidth + 2 * AD_MENU_ITEM_PADDING_H;
+
+    /* Factor in the prompt length into window width calculation */
+    if (menu->prompt) {
+        maximumPromptWidth = ad_textElementArrayGetLongestLength(menu->prompt->lineCount, menu->prompt->lines);
+        windowContentWidth = AD_MAX(windowContentWidth, maximumPromptWidth);
+    }
+
+    /* Cap it at the maximum width of displayable content in an Object */
+    windowContentWidth = AD_MIN(windowContentWidth, maximumContentWidth);
+
+    /* The width of the *labels* is the content width minus padding minus the maximum options width minus the space inbetween */
+    menu->itemWidth = windowContentWidth - menu->optionWidth - 1 - 2 * AD_MENU_ITEM_PADDING_H;
+
+    ad_objectInitialize(&menu->object, windowContentWidth, menu->itemCount + 1 + promptHeight); /* +2 because of prompt*/
+    ad_objectPaint(&menu->object);
+
+    menu->optionX = ad_objectGetContentX(&menu->object) + AD_MENU_ITEM_PADDING_H;
+    menu->optionY = ad_objectGetContentY(&menu->object);
+    menu->itemX = menu->optionX + menu->optionWidth + 1; // +1 due to space inbetween option and item
+    menu->itemY = menu->optionY;
+
+    /* Print prompt if it exists */
+    if (menu->prompt) {   
+        uint16_t promptX = ad_objectGetContentX(&menu->object);
+        ad_displayTextElementArray(promptX, menu->itemY, ad_objectGetContentWidth(&menu->object), menu->prompt->lineCount, menu->prompt->lines);
+        menu->itemY   += 1 + menu->prompt->lineCount;
+        menu->optionY += 1 + menu->prompt->lineCount;
+    }
+
+    /* Print the menu items */
+
+    ad_displayTextElementArray(menu->itemX, menu->itemY, menu->itemWidth, menu->itemCount, menu->items);
+    ad_displayMultiSelectorOptions(menu);
+
+    ad_multiSelectorSelectOptionAndDraw(menu, 0);
+
+    return true;
+}
+
+ad_MultiSelector *ad_multiSelectorCreate(const char *title, const char *prompt, bool cancelable) {
+    ad_MultiSelector *menu = calloc(1, sizeof(ad_MultiSelector));
+    assert(menu);
+
+    menu->cancelable = cancelable;
+    menu->prompt = ad_multiLineTextCreate(prompt);
+    
+    ad_textElementAssign(&menu->object.footer, menu->cancelable ? AD_FOOTER_MULTISELECTOR_CANCELABLE : AD_FOOTER_MULTISELECTOR);
+    ad_textElementAssign(&menu->object.title, title);
+
+    return menu;
+}
+
+
+int32_t ad_multiSelectorExecute(ad_MultiSelector *menu) {
+    uint32_t ch;
+
+    ad_multiSelectorPaint(menu);
+
+    while (true) {
+        ad_MultiSelectorItem *curItem = &menu->itemOptions[menu->currentSelection];
+        ch = hal_getKey();
+
+        if          (ch == AD_KEY_UP) {
+            ad_multiSelectorSelectOptionAndDraw(menu, (menu->currentSelection > 0) ? menu->currentSelection - 1 : menu->itemCount - 1);
+        } else if   (ch == AD_KEY_DOWN) {
+            ad_multiSelectorSelectOptionAndDraw(menu, (menu->currentSelection + 1) % menu->itemCount);
+
+            /* MultiSelector handles Right/left in addition to the menu */
+        } else if   (ch == AD_KEY_RIGHT) {
+            curItem->selected = (curItem->selected == (curItem->optionCount - 1)) ? 0 : curItem->selected + 1;
+            ad_multiSelectorSelectOptionAndDraw(menu, menu->currentSelection);
+        } else if   (ch == AD_KEY_LEFT) {
+            curItem->selected = (curItem->selected == 0) ? curItem->optionCount - 1 : curItem->selected - 1;
+            ad_multiSelectorSelectOptionAndDraw(menu, menu->currentSelection);
+        } else if   (ch == AD_KEY_ENTER) {
+            return 0;
+        } else if   (menu->cancelable && (ch == AD_KEY_ESC)) {
+            return AD_CANCELED;
+        } 
+#if DEBUG
+        else {
+            printf("unhandled key: %08x\n", ch);
+        }
+#endif
+    }
+}
+
+void ad_multiSelectorAddItem(ad_MultiSelector *obj, const char *label, size_t optionCount, const char *options[]) {
+    if (obj == NULL || label == NULL ) return;
+
+    /* Compared to menu, we have to assign *both* the item label and *all* the options for it */
+
+    obj->itemCount++;
+    obj->items = ad_textElementArrayResize(obj->items, obj->itemCount);
+    obj->itemOptions = ad_multiSelectorOptionArrayResize(obj->itemOptions, obj->itemCount);
+    
+    assert(obj->items);
+    assert(obj->itemOptions);
+
+    ad_textElementAssign(&obj->items[obj->itemCount-1], label);
+    ad_multiSelectorOptionAssign(&obj->itemOptions[obj->itemCount-1], optionCount, options);
+}
+
+void ad_multiSelectorDestroy(ad_MultiSelector *menu) {
+    if (menu) {
+        size_t itemIndex;
+        ad_objectUnpaint(&menu->object);
+        ad_multiLineTextDestroy(menu->prompt);
+        if (menu->items) {
+            /* Compared to the regular menus, here we must also free the option textelements */
+            for (itemIndex = 0; itemIndex < menu->itemCount; itemIndex++) {
+                free(menu->itemOptions[itemIndex].options);
+            }
+            free(menu->items);
+        }
+        free(menu);
+    }
+}
+
+size_t ad_multiSelectorGet(ad_MultiSelector *menu, size_t index) {
+    AD_RETURN_ON_NULL(menu, 0);
+
+    if (index > menu->itemCount) {
+        return 0;
+    }
+
+    return menu->itemOptions[index].selected;
+}

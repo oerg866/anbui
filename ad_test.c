@@ -32,6 +32,24 @@ int main(int argc, char *argv[]) {
 
     ad_init("AnbUI Super Burger Edition - The Test Application(tm)");
 
+    /* test multi selector */
+    {
+        ad_MultiSelector *sel = ad_multiSelectorCreate("Select Burger Ingredients", "Please select your burger ingredients",false);
+        const char *buns[] = { "Sesame", "Brioche" };
+        const char *bacon[] = { "Yes", "No" };
+        const char *cheese[] = { "Cheddar", "American", "None" };
+        const char *pickles[] = { "Yes", "No" };
+        
+        ad_multiSelectorAddItem(sel, "What kind of bun?", 2, buns);
+        ad_multiSelectorAddItem(sel, "Do you want bacon?", 2, bacon);
+        ad_multiSelectorAddItem(sel, "What kind of cheese?", 3, cheese);
+        ad_multiSelectorAddItem(sel, "Do you want pickles?", 2, pickles);
+
+        ad_multiSelectorExecute(sel);
+
+        ad_multiSelectorDestroy(sel);
+    }
+
     ad_yesNoBox("Burger Selection", true,
         "Do you want cheese on burger cheese taste on you?\n"
         "Refer to Anby Demara's Burger Handbook for more\n"
@@ -67,10 +85,23 @@ int main(int argc, char *argv[]) {
 
     for (i = 0; i <= 10; i++) {
         ad_progressBoxUpdate(prog, i);
+
+        if (i == 6) {
+            ad_screenSaveState();
+            ad_restore();
+            ad_yesNoBox("Oh no!", false, 
+                "An error has occured!\n"
+                "Eat burgers?");
+            ad_screenLoadState();
+        }
+
         sleep(0.1);
     }
 
     ad_progressBoxDestroy(prog);
+
+
+
 
     ad_deinit();
 
