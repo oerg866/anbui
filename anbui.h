@@ -68,11 +68,27 @@ int32_t         ad_okBox                (const char *title, bool cancelable, con
 /*  Creates a Progress-bar display box with the given title and prompt.
     maxProgress is the maximum progress value, i.e. the progress value that yields a filled bar.
     Must be deallocated with ad_progressBoxDestroy. */
-ad_ProgressBox *ad_progressBoxCreate    (const char *title, uint32_t maxProgress, const char *prompt, ...);
-/*  Updates the progress box with the given progress value. The fill level is calculated as progress-out-of-maxProgress. */
-void            ad_progressBoxUpdate    (ad_ProgressBox *pb, uint32_t progress);
+ad_ProgressBox *ad_progressBoxSingleCreate (const char *title, uint32_t maxProgress, const char *prompt, ...);
+
+/*  Creates a Progress-bar display box with the given title and prompt.
+    This call should be used if the progress box should have multiple progress bars with labels.
+    This call also does not *show* the progress box automatically.
+    You must add progress bar items before calling ad_ProgressBoxPaint.
+    Must be deallocated with ad_progressBoxDestroy. */
+ad_ProgressBox *ad_progressBoxMultiCreate  (const char *title, const char *prompt, ...);
 /*  Deallocates the progress box */
 void            ad_progressBoxDestroy   (ad_ProgressBox *pb);
+/*  Adds a row to the progress box. I.e. a label + a progress bar. */
+void            ad_progressBoxAddItem   (ad_ProgressBox *pb, const char *label, uint32_t maxProgress);
+/*  This must be called once before calling progressBoxUpdate so that the actual box gets drawn after adding items */
+bool            ad_progressBoxPaint     (ad_ProgressBox *pb);
+/*  Updates the progress box with the given progress value. The fill level is calculated as progress-out-of-maxProgress. */
+void            ad_progressBoxUpdate    (ad_ProgressBox *pb, uint32_t progress);
+/*  Updates the n-th progress box with the given progress value. The fill level is calculated as progress-out-of-maxProgress. */
+void            ad_progressBoxMultiUpdate(ad_ProgressBox *pb, size_t index, uint32_t progress);
+/*  Intended for multi-item progress bars. Sets the maximum progress value for the bar at <index>.
+    Example: useful if the total size of a file copy isnt known at the box's creation */
+void            ad_progressBoxSetMaxProgress(ad_ProgressBox *obj, size_t index, uint32_t maxProgress);
 
 /*  Displays a scrollable display box which contains the contents of the text file pointed to by fileName.
     It does NOT support horizontal scrolling, lines that are too long will be cut off and truncated with a "..." suffix.

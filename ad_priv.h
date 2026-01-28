@@ -110,13 +110,19 @@ struct ad_TextFileBox {
     ad_MultiLineText   *lines;
 };
 
+typedef struct {
+    ad_TextElement      label;
+    uint32_t            outOf;
+    uint16_t            currentX;
+} ad_Progress;
+
 struct ad_ProgressBox {
     ad_Object           object;
-    uint32_t            progress;
-    uint32_t            outOf;
+    size_t              itemCount;
+    ad_Progress        *items;
     uint16_t            boxX;
-    uint16_t            currentX;
     uint16_t            boxY;
+    uint16_t            labelX;
     uint16_t            boxWidth;
     ad_MultiLineText   *prompt;
 };

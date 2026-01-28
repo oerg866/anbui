@@ -26,6 +26,7 @@ int main(int argc, char *argv[]) {
     ad_Menu        *menu = NULL;
     ad_ProgressBox *prog = NULL;
     size_t          i;
+    size_t          j;
 
     (void) argc;
     (void) argv;
@@ -79,7 +80,7 @@ int main(int argc, char *argv[]) {
     ad_menuDestroy(menu);
 
     /* Test Progress Box */
-    prog = ad_progressBoxCreate("Vorwaerts immer, Rueckwaerts nimmer", 10,
+    prog = ad_progressBoxSingleCreate("Vorwaerts immer, Rueckwaerts nimmer", 10,
         "Please wait while we burger your cheese.\n"
         "Also: Burgering can not be tasted.");
 
@@ -100,8 +101,27 @@ int main(int argc, char *argv[]) {
 
     ad_progressBoxDestroy(prog);
 
+    /* Test Multi Progress Box */
 
+    prog = ad_progressBoxMultiCreate("Preparing your order...",
+        "Please wait while we make your burger.");
 
+    ad_progressBoxAddItem(prog, "Cutting veggies", 10);
+    ad_progressBoxAddItem(prog, "Preparing Patty", 10);
+    ad_progressBoxAddItem(prog, "Cooking patty", 10);
+    ad_progressBoxAddItem(prog, "Toasting bun", 10);
+    ad_progressBoxAddItem(prog, "Finishing", 10);
+
+    ad_progressBoxPaint(prog);
+
+    for (i = 0; i < 5; i++) {
+        for (j = 0; j <= 10; j++) {
+            ad_progressBoxMultiUpdate(prog, i, j);
+            sleep(0.1);
+        }
+    }
+
+    ad_progressBoxDestroy(prog);
 
     ad_deinit();
 

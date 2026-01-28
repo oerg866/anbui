@@ -192,10 +192,21 @@ int32_t ad_okBox(const char *title, bool cancelable, const char *promptFormat, .
     return ad_menuExecuteDirectlyInternal(title, cancelable, AD_ARRAY_SIZE(options), options, tmpPrompt);
 }
 
-static bool ad_progressBoxPaint(ad_ProgressBox *pb) {
+static size_t ad_progressBoxGetLongestLabelLength(ad_ProgressBox *pb) {
+    size_t i = 0;
+    size_t length = 0;
+    for (i = 0; i < pb->itemCount; i++) {
+        length = AD_MAX(length, strlen(pb->items[i].label.text));
+    }
+    return length;
+}
+
+bool ad_progressBoxPaint (ad_ProgressBox *pb) {
     size_t expectedWidth;
     size_t promptWidth;
     size_t promptHeight;
+    size_t labelWidth;
+    size_t pbIndex;
     
     AD_RETURN_ON_NULL(pb, false);
 
@@ -203,35 +214,69 @@ static bool ad_progressBoxPaint(ad_ProgressBox *pb) {
     promptHeight = (pb->prompt != NULL) ? pb->prompt->lineCount : 0;
     promptWidth = (pb->prompt != NULL) ? ad_textElementArrayGetLongestLength(pb->prompt->lineCount, pb->prompt->lines) : 0;
 
+    labelWidth = ad_progressBoxGetLongestLabelLength(pb);
+
     /* Standard width = 50 + margin
        Maximum width = text length + margin, capped to maximum object width */
     expectedWidth = AD_MAX(50, promptWidth);
 
-    ad_objectInitialize(&pb->object, expectedWidth, promptHeight + 1 + 1);
+    ad_objectInitialize(&pb->object, expectedWidth, promptHeight + pb->itemCount + 1);
     ad_objectPaint(&pb->object);
 
-    pb->boxX = ad_objectGetContentX(&pb->object);
-    pb->currentX = 0;
+    pb->labelX = ad_objectGetContentX(&pb->object);
     pb->boxY = ad_objectGetContentY(&pb->object);
     pb->boxWidth = ad_objectGetContentWidth(&pb->object);
 
+    if (pb->itemCount == 1) {
+        pb->boxX = pb->labelX;
+    } else {
+        /* If this is a multi-item box, the box starts *after* the label. */
+        pb->boxX = pb->labelX + labelWidth + 1 + 1;
+        pb->boxWidth -= (labelWidth + 1);
+    }
+
     if (pb->prompt) {   
-        ad_displayTextElementArray(pb->boxX, pb->boxY, ad_objectGetContentWidth(&pb->object), pb->prompt->lineCount, pb->prompt->lines);
+        ad_displayTextElementArray(pb->labelX, pb->boxY, ad_objectGetContentWidth(&pb->object), pb->prompt->lineCount, pb->prompt->lines);
         pb->boxY += 1 + pb->prompt->lineCount;
     }
 
-    /* Draw the actual bar (empty for now, of course) */
-    ad_fill(pb->boxWidth, ' ', pb->boxX, pb->boxY, COLOR_GRAY, 0);
+    /* Draw the actual bar(s) (empty for now, of course) */
+    for (pbIndex = 0; pbIndex < pb->itemCount; pbIndex++) {
+        uint16_t y = pb->boxY + pbIndex;
+        ad_fill(pb->boxWidth, ' ', pb->boxX, pb->boxY + pbIndex, COLOR_GRAY, 0);
+
+        /* Draw the bar labels ONLY if it's a multi-item box */
+        if (pb->itemCount > 1) {
+            ad_displayStringCropped(pb->items[pbIndex].label.text, pb->labelX, y, labelWidth, ad_s_con.objectBg, ad_s_con.objectFg);
+        }
+    }
 
     ad_setColor(ad_s_con.progressFill, 0);
-    ad_setCursorPosition(pb->boxX, pb->boxY);
 
     hal_flush();
 
     return true;
 }
 
-ad_ProgressBox *ad_progressBoxCreate(const char *title, uint32_t maxProgress, const char *promptFormat, ...) {
+ad_ProgressBox *ad_progressBoxSingleCreate(const char *title, uint32_t maxProgress, const char *promptFormat, ...) {
+    ad_ProgressBox *pb = NULL;
+    char tmpPrompt[1024];
+    va_list args;
+    va_start(args, promptFormat);
+    vsnprintf(tmpPrompt, sizeof(tmpPrompt), promptFormat, args);
+    va_end(args);
+
+    pb = ad_progressBoxMultiCreate(title, "%s", tmpPrompt);
+
+    if (pb) {
+        ad_progressBoxAddItem(pb, "", maxProgress);
+        ad_progressBoxPaint(pb);
+    }
+    
+    return pb;
+}
+
+ad_ProgressBox *ad_progressBoxMultiCreate(const char *title, const char *promptFormat, ...) {
     ad_ProgressBox *pb = NULL;
     char tmpPrompt[1024];
     va_list args;
@@ -245,47 +290,76 @@ ad_ProgressBox *ad_progressBoxCreate(const char *title, uint32_t maxProgress, co
     vsnprintf(tmpPrompt, sizeof(tmpPrompt), promptFormat, args);
     va_end(args);
 
-    pb->progress = 0;
-    pb->outOf = maxProgress;
-
     pb->prompt = ad_multiLineTextCreate(tmpPrompt);
     ad_textElementAssign(&pb->object.title, title);
-    
-    ad_progressBoxPaint(pb);
-
     return pb;
-}
-
-void ad_progressBoxUpdate(ad_ProgressBox *pb, uint32_t progress) {
-    uint16_t newX;
-    uint16_t newPaintLength;
-
-    if (pb == NULL) {
-        return;
-    }
-
-    /*  round / lround for values > 1 in MUSL gets clipped to 1.0 ?????? am I stupid?
-        Anyway this hack is here until I get some sleep.. */
-    newX = AD_ROUND_HACK_WTF(uint16_t, ((double) pb->boxWidth * (double) progress) / ((double) pb->outOf));
-
-    if (newX == pb->currentX) {
-        return;
-    }
-
-    newPaintLength = newX - pb->currentX;
-    pb->currentX = newX;
-
-    ad_putChar(' ', newPaintLength);
-
-    hal_flush();
 }
 
 void ad_progressBoxDestroy(ad_ProgressBox *pb) {
     if (pb) {
         ad_objectUnpaint(&pb->object);
         ad_multiLineTextDestroy(pb->prompt);
+        free(pb->items);
         free(pb);
     }
+}
+
+void ad_progressBoxMultiUpdate(ad_ProgressBox *pb, size_t index, uint32_t progress) {
+    uint16_t newX;
+    uint16_t newPaintLength;
+    ad_Progress *prog;
+
+    if (pb == NULL) {
+        return;
+    }
+
+    prog = &pb->items[index];
+
+    /*  round / lround for values > 1 in MUSL gets clipped to 1.0 ?????? am I stupid?
+        Anyway this hack is here until I get some sleep.. */
+    newX = AD_ROUND_HACK_WTF(uint16_t, ((double) pb->boxWidth * (double) progress) / ((double) prog->outOf));
+
+    if (newX == prog->currentX) {
+        return;
+    }
+
+    newPaintLength = newX - prog->currentX;
+
+    ad_setCursorPosition(pb->boxX + prog->currentX, pb->boxY + index);
+    ad_setColor(ad_s_con.progressFill, 0);
+
+    ad_putChar(' ', newPaintLength);
+
+    hal_flush();
+    
+    prog->currentX = newX;
+}
+
+void ad_progressBoxUpdate(ad_ProgressBox *pb, uint32_t progress) {
+    ad_progressBoxMultiUpdate(pb, 0, progress);
+}
+
+static ad_Progress *ad_progressArrayResize(ad_Progress *ptr, size_t newCount) {
+    ptr = realloc(ptr, newCount * sizeof(ad_Progress));
+    if (ptr) memset(&ptr[newCount-1], 0, sizeof(ad_Progress));
+    return ptr;
+}
+
+void ad_progressBoxAddItem(ad_ProgressBox *obj, const char *label, uint32_t maxProgress) {
+    if (obj == NULL || label == NULL ) return;
+
+    obj->itemCount++;
+    obj->items = ad_progressArrayResize(obj->items, obj->itemCount);
+    
+    assert(obj->items);
+
+    obj->items[obj->itemCount-1].outOf = maxProgress;
+    ad_textElementAssign(&obj->items[obj->itemCount-1].label, label);
+}
+
+void ad_progressBoxSetMaxProgress(ad_ProgressBox *obj, size_t index, uint32_t maxProgress) {
+    if (obj == NULL || index >= obj->itemCount) return;
+    obj->items[index].outOf = maxProgress;
 }
 
 static inline void ad_textFileBoxRedrawLines(ad_TextFileBox *tfb) {
