@@ -139,7 +139,7 @@ ad_MultiSelector *ad_multiSelectorCreate(const char *title, const char *prompt, 
                     3) AD_ERROR if something blew up (null pointer or something) */
 int32_t         ad_multiSelectorExecute (ad_MultiSelector *menu);
 /*  Adds an item + options to the multi slelector menu */
-void            ad_multiSelectorAddItem (ad_MultiSelector *obj, const char *label, size_t optionCount, const char *options[]);
+void            ad_multiSelectorAddItem (ad_MultiSelector *obj, const char *label, size_t optionCount, size_t defaultOption, const char *options[]);
 /*  Deallocates the multi selector menu */
 void            ad_multiSelectorDestroy (ad_MultiSelector *menu);
 /*  Get the selected option for a multi selector item. */

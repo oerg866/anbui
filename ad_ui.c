@@ -622,20 +622,6 @@ ad_MultiSelectorItem *ad_multiSelectorOptionArrayResize(ad_MultiSelectorItem *pt
     return ptr;
 }
 
-static void ad_multiSelectorOptionAssign(ad_MultiSelectorItem *item, size_t optionCount, const char *options[]) {
-    size_t optionIndex = 0;
-    
-    item->optionCount = optionCount;
-    item->selected = 0;
-    item->options = ad_textElementArrayResize(item->options, optionCount);
-
-    assert(item->options);
-
-    for (optionIndex = 0; optionIndex < optionCount; optionIndex++) {
-        ad_textElementAssign(&item->options[optionIndex], options[optionIndex]);
-    }
-}
-
 static void ad_displayMultiSelectorOptions(ad_MultiSelector *menu) {
     size_t i;
     size_t y = menu->itemY;
@@ -767,7 +753,10 @@ int32_t ad_multiSelectorExecute(ad_MultiSelector *menu) {
     }
 }
 
-void ad_multiSelectorAddItem(ad_MultiSelector *obj, const char *label, size_t optionCount, const char *options[]) {
+void ad_multiSelectorAddItem(ad_MultiSelector *obj, const char *label, size_t optionCount, size_t defaultOption, const char *options[]) {
+    ad_MultiSelectorItem *newItem;
+    size_t optionIndex;
+
     if (obj == NULL || label == NULL ) return;
 
     /* Compared to menu, we have to assign *both* the item label and *all* the options for it */
@@ -780,7 +769,17 @@ void ad_multiSelectorAddItem(ad_MultiSelector *obj, const char *label, size_t op
     assert(obj->itemOptions);
 
     ad_textElementAssign(&obj->items[obj->itemCount-1], label);
-    ad_multiSelectorOptionAssign(&obj->itemOptions[obj->itemCount-1], optionCount, options);
+    
+    newItem = &obj->itemOptions[obj->itemCount-1];
+    newItem->optionCount = optionCount;
+    newItem->selected = defaultOption;
+    newItem->options = ad_textElementArrayResize(newItem->options, optionCount);
+
+    assert(newItem->options);
+
+    for (optionIndex = 0; optionIndex < optionCount; optionIndex++) {
+        ad_textElementAssign(&newItem->options[optionIndex], options[optionIndex]);
+    }
 }
 
 void ad_multiSelectorDestroy(ad_MultiSelector *menu) {
