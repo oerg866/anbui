@@ -73,9 +73,6 @@ void ad_deinitConsole(void) {
 }
 
 void ad_screenSaveState(void) {
-    FILE *a = fopen("state.bin", "wb");
-    fwrite(state.data, 1, state.bufSize, a);
-    fclose(a);
     memcpy(state.data_backup, state.data, state.bufSize);
     state.x_backup = state.x;
     state.y_backup = state.y;
