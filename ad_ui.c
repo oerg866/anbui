@@ -104,6 +104,15 @@ void ad_menuAddItemFormatted(ad_Menu *obj, const char *format, ...) {
     va_end(args);
 }
 
+bool ad_menuGetItemText(ad_Menu *obj, size_t index, char *dst, size_t dstSize) {
+    AD_RETURN_ON_NULL(obj, false);
+    AD_RETURN_ON_NULL(dst, false);
+    if (index > obj->itemCount) return false;
+    strncpy(dst, obj->items[index].text, dstSize - 1);
+    dst[dstSize - 1] = 0x00;
+    return true;    
+}
+
 inline size_t ad_menuGetItemCount(ad_Menu *menu) {
     return menu ? menu->itemCount : 0;
 }
