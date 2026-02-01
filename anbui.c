@@ -37,10 +37,9 @@ void ad_init(const char *title) {
     ad_s_con.footerFg       = COLOR_WHITE;
     ad_s_con.objectBg       = COLOR_WHITE;
     ad_s_con.objectFg       = COLOR_BLACK;
-    ad_s_con.progressBlank  = COLOR_GRAY;
-    ad_s_con.progressFill   = COLOR_LRED;
     ad_s_con.backgroundFill = COLOR_BLUE;
 
+    ad_progressBoxSetCharAndColor(' ', COLOR_BLACK, COLOR_BLACK, COLOR_RED, COLOR_RED);
     ad_initConsole(&ad_s_con);
 
     ad_textElementAssign(&ad_s_title, title);

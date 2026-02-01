@@ -240,18 +240,17 @@ bool ad_progressBoxPaint (ad_ProgressBox *pb) {
         pb->boxY += 1 + pb->prompt->lineCount;
     }
 
-    /* Draw the actual bar(s) (empty for now, of course) */
+    /* Draw the actual bar(s) */
     for (pbIndex = 0; pbIndex < pb->itemCount; pbIndex++) {
         uint16_t y = pb->boxY + pbIndex;
-        ad_fill(pb->boxWidth, ' ', pb->boxX, pb->boxY + pbIndex, COLOR_GRAY, 0);
+        ad_fill(pb->boxWidth,                   ad_s_con.progressChar, pb->boxX, pb->boxY + pbIndex, ad_s_con.progressBlankBg, ad_s_con.progressBlankFg);
+        ad_fill(pb->items[pbIndex].currentX,    ad_s_con.progressChar, pb->boxX, pb->boxY + pbIndex, ad_s_con.progressFillBg,  ad_s_con.progressFillFg);
 
         /* Draw the bar labels ONLY if it's a multi-item box */
         if (pb->itemCount > 1) {
             ad_displayStringCropped(pb->items[pbIndex].label.text, pb->labelX, y, labelWidth, ad_s_con.objectBg, ad_s_con.objectFg);
         }
     }
-
-    ad_setColor(ad_s_con.progressFill, 0);
 
     hal_flush();
 
@@ -326,9 +325,9 @@ void ad_progressBoxMultiUpdate(ad_ProgressBox *pb, size_t index, uint32_t progre
     newPaintLength = newX - prog->currentX;
 
     ad_setCursorPosition(pb->boxX + prog->currentX, pb->boxY + index);
-    ad_setColor(ad_s_con.progressFill, 0);
+    ad_setColor(ad_s_con.progressFillBg, ad_s_con.progressFillFg);
 
-    ad_putChar(' ', newPaintLength);
+    ad_putChar(ad_s_con.progressChar, newPaintLength);
 
     hal_flush();
     
@@ -337,6 +336,14 @@ void ad_progressBoxMultiUpdate(ad_ProgressBox *pb, size_t index, uint32_t progre
 
 void ad_progressBoxUpdate(ad_ProgressBox *pb, uint32_t progress) {
     ad_progressBoxMultiUpdate(pb, 0, progress);
+}
+
+void ad_progressBoxSetCharAndColor(char fillChar, uint8_t colorBlankBg, uint8_t colorBlankFg, uint8_t colorFillBg, uint8_t colorFillFg) {
+    ad_s_con.progressChar       = fillChar;
+    ad_s_con.progressBlankBg    = colorBlankBg;
+    ad_s_con.progressBlankFg    = colorBlankFg;
+    ad_s_con.progressFillBg     = colorFillBg;
+    ad_s_con.progressFillFg     = colorFillFg;
 }
 
 static ad_Progress *ad_progressArrayResize(ad_Progress *ptr, size_t newCount) {

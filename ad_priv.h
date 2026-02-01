@@ -19,23 +19,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#define COLOR_BLACK 0
-#define COLOR_BLUE  1
-#define COLOR_GREEN 2
-#define COLOR_CYAN  3
-#define COLOR_RED   4
-#define COLOR_MAGNT 5
-#define COLOR_BROWN 6
-#define COLOR_DGRAY 7
-#define COLOR_GRAY  8
-#define COLOR_LBLUE 9
-#define COLOR_LGREN 10
-#define COLOR_LCYAN 11
-#define COLOR_LRED  12
-#define COLOR_LMGNT 13
-#define COLOR_YELLO 14
-#define COLOR_WHITE 15
-
 #define AD_UNUSED_PARAMETER(param) ((void)(param))
 
 #define AD_KEY_ESC      0xFFFFFF1b
@@ -180,8 +163,11 @@ struct ad_ConsoleConfig {
     uint8_t             footerFg;
     uint8_t             objectBg;
     uint8_t             objectFg;
-    uint8_t             progressBlank;
-    uint8_t             progressFill;
+    uint8_t             progressBlankBg;
+    uint8_t             progressBlankFg;
+    uint8_t             progressFillBg;
+    uint8_t             progressFillFg;
+    char                progressChar;
     uint8_t             backgroundFill;
 };
 

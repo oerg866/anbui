@@ -21,6 +21,23 @@
 #define AD_CANCELED     (-1)
 #define AD_ERROR        (-INT32_MAX)
 
+#define COLOR_BLACK 0
+#define COLOR_BLUE  1
+#define COLOR_GREEN 2
+#define COLOR_CYAN  3
+#define COLOR_RED   4
+#define COLOR_MAGNT 5
+#define COLOR_BROWN 6
+#define COLOR_DGRAY 7
+#define COLOR_GRAY  8
+#define COLOR_LBLUE 9
+#define COLOR_LGREN 10
+#define COLOR_LCYAN 11
+#define COLOR_LRED  12
+#define COLOR_LMGNT 13
+#define COLOR_YELLO 14
+#define COLOR_WHITE 15
+
 typedef struct ad_TextFileBox   ad_TextFileBox;
 typedef struct ad_ProgressBox   ad_ProgressBox;
 typedef struct ad_Menu          ad_Menu;
@@ -89,6 +106,8 @@ void            ad_progressBoxMultiUpdate(ad_ProgressBox *pb, size_t index, uint
 /*  Intended for multi-item progress bars. Sets the maximum progress value for the bar at <index>.
     Example: useful if the total size of a file copy isnt known at the box's creation */
 void            ad_progressBoxSetMaxProgress(ad_ProgressBox *obj, size_t index, uint32_t maxProgress);
+/*  Set the character and colors used for filling the progress bar (normally this is is a space) */
+void            ad_progressBoxSetCharAndColor(char fillChar, uint8_t colorBlankBg, uint8_t colorBlankFg, uint8_t colorFillBg, uint8_t colorFillFg);
 
 /*  Displays a scrollable display box which contains the contents of the text file pointed to by fileName.
     It does NOT support horizontal scrolling, lines that are too long will be cut off and truncated with a "..." suffix.
