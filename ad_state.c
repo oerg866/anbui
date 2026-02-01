@@ -119,7 +119,7 @@ void ad_putChar(char c, size_t count) {
     ad_Char *drawPtr = ad_drawPtr();
     hal_putChar(c, count);
     while (count-- && drawPtr < state.dataLimit) {
-        assert(c >= ' ');
+        assert((uint8_t) c >= (uint8_t) ' ');
         drawPtr->color = state.color;
         drawPtr->ascii = c;
         drawPtr++;
