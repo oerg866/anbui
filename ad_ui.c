@@ -216,6 +216,7 @@ bool ad_progressBoxPaint (ad_ProgressBox *pb) {
     size_t promptHeight;
     size_t labelWidth;
     size_t pbIndex;
+    size_t pbDefaultWidth = ad_objectGetMaximumContentWidth() * 60 / 100;
     
     AD_RETURN_ON_NULL(pb, false);
 
@@ -225,9 +226,9 @@ bool ad_progressBoxPaint (ad_ProgressBox *pb) {
 
     labelWidth = ad_progressBoxGetLongestLabelLength(pb);
 
-    /* Standard width = 50 + margin
+    /* Standard width = label width + 60% of screen for the bar
        Maximum width = text length + margin, capped to maximum object width */
-    expectedWidth = AD_MAX(50, promptWidth);
+    expectedWidth = promptWidth + pbDefaultWidth;
 
     ad_objectInitialize(&pb->object, expectedWidth, promptHeight + pb->itemCount + 1);
     ad_objectPaint(&pb->object);
