@@ -14,6 +14,8 @@
 #include <termios.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
+#include <poll.h>
+#include <sched.h>
 
 #include "ad_priv.h"
 #include "ad_hal.h"
@@ -28,7 +30,7 @@
 #define PL_LINUX_CL_RST "\033[0m"
 
 #define PL_LINUX_CH_ESCAPE '\033'
-#define PL_LINUX_CH_SEQSTART '['
+#define PL_LINUX_CH_SEQSTART  0x00001b5b
 
 #define PL_LINUX_CURSOR_U     0x001b5b41
 #define PL_LINUX_CURSOR_D     0x001b5b42
@@ -99,12 +101,31 @@ inline void hal_putChar(char c, size_t count) {
     }
 }
 
+static inline bool keyAvailable(void) {
+    struct pollfd pfd;
+
+    pfd.fd = STDIN_FILENO;
+    pfd.events = POLLIN;
+    pfd.revents = 0;
+
+    return poll(&pfd, 1, 0) > 0;
+}
+
+static inline int32_t getChar(void) {
+    int8_t ch = 0;
+    while (read(STDIN_FILENO, &ch, 1) != 1) {
+        sched_yield();
+    }
+    return ch;
+}
+
 uint32_t hal_getKey(void) {
-    int32_t ch = getchar();
-    if ((ch & 0xff) == PL_LINUX_CH_ESCAPE)                      ch = (ch << 8) | (getchar() & 0xff);
-    if ((ch & 0xff) == PL_LINUX_CH_SEQSTART)                    ch = (ch << 8) | (getchar() & 0xff);
+    int32_t ch = getChar();
+
+    if (keyAvailable() && (ch == PL_LINUX_KEY_ESCAPE2))                   ch = (ch << 8) | (getChar() & 0xff);
+    if (keyAvailable() && (ch == PL_LINUX_CH_SEQSTART))                   ch = (ch << 8) | (getChar() & 0xff);
     /* Special case for PGUp and Down, they have another 7e keycode at the end... */
-    if ((ch & 0xff) == 0x35 || (ch & 0xff) == 0x36 )            ch = (ch << 8) | (getchar() & 0xff);
+    if (keyAvailable() && ((ch & 0xff) == 0x35 || (ch & 0xff) == 0x36 ))  ch = (ch << 8) | (getChar() & 0xff);
 
     switch (ch) {
         case PL_LINUX_KEY_ESCAPE:   return AD_KEY_ESC;
