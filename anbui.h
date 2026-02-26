@@ -19,6 +19,8 @@
 #define AD_YESNO_YES    (0)
 #define AD_YESNO_NO     (1)
 #define AD_CANCELED     (-1)
+/* Return code for F-Keys */
+#define AD_F_KEY(x)     (-(10+(x)))
 #define AD_ERROR        (-INT32_MAX)
 
 #define COLOR_BLACK 0
@@ -57,8 +59,11 @@ void            ad_setFooterText        (const char *footer);
 /*  Clears the footer on the screen*/
 void            ad_clearFooter          (void);
 
-/*  Create a menu with given title and prompt. Cancelable means the menu can be cancelled using the ESC key.
+/*  Create a menu with given title and prompt.
+    Cancelable means the menu can be cancelled using the ESC key.
+    enableFKeys means that menuExecute will return if F1-F12 are pressed with that value.
     Must be deallocated with ad_menuDestroy */
+ad_Menu        *ad_menuCreate           (const char * title, const char *prompt, bool cancelable, bool enableFKeys);
 /*  Adds an item to a menu. Returns AD_ERROR on error or the index of the newly added item on success. */
 int             ad_menuAddItemFormatted (ad_Menu *menu, const char *format, ...);
 /*  Returns the item label for a menu */
@@ -66,9 +71,12 @@ bool            ad_menuGetItemText      (ad_Menu *obj, size_t index, char *dst, 
 /*  Returns the amount of selectable items a menu has */
 size_t          ad_menuGetItemCount     (ad_Menu *menu);
 /*  Displays the menu and lets the user make a choice.
+    It is safe to call this function repeatedly.
     Returns values: 1) the index of the chosen item
-                    2) AD_CANCELED for a cancelled menu (if menu was created as 'cancelable')
-                    3) AD_ERROR if something blew up (null pointer or something) */
+                    2) An F-Key that was pressed if the menu was created with enableFKeys = True
+                       Check this with AD_F_KEY(x) where x is from 0 to 11 (= F1 to F12)
+                    3) AD_CANCELED for a cancelled menu (if menu was created as 'cancelable')
+                    4) AD_ERROR if something blew up (null pointer or something) */
 int32_t         ad_menuExecute          (ad_Menu *menu);
 /*  Deallocates menu. */
 void            ad_menuDestroy          (ad_Menu *menu);

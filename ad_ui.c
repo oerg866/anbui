@@ -78,11 +78,12 @@ static bool ad_menuPaint(ad_Menu *menu) {
     return true;
 }
 
-ad_Menu *ad_menuCreate(const char *title, const char *prompt, bool cancelable) {
+ad_Menu *ad_menuCreate(const char *title, const char *prompt, bool cancelable, bool enableFKeys) {
     ad_Menu *menu = calloc(1, sizeof(ad_Menu));
     assert(menu);
 
     menu->cancelable = cancelable;
+    menu->enableFKeys = enableFKeys;
     menu->prompt = ad_multiLineTextCreate(prompt);
     
     ad_textElementAssign(&menu->object.footer, menu->cancelable ? AD_FOOTER_MENU_CANCELABLE : AD_FOOTER_MENU);
@@ -135,9 +136,12 @@ int32_t ad_menuExecute(ad_Menu *menu) {
             ad_menuSelectItemAndDraw(menu, (menu->currentSelection + 1) % menu->itemCount);
         } else if   (ch == AD_KEY_ENTER) {
             return menu->currentSelection;
+        } else if   (menu->enableFKeys && AD_IS_F_KEY(ch)) {
+            uint32_t fKeyIndex = ch - AD_KEY_F1;
+            return AD_F_KEY((int32_t) (fKeyIndex));
         } else if   (menu->cancelable && (ch == AD_KEY_ESC)) {
             return AD_CANCELED;
-        } 
+        }
 #if DEBUG
         else {
             printf("unhandled key: %08x\n", ch);
@@ -163,7 +167,7 @@ static int32_t ad_menuExecuteDirectlyInternal(const char *title, bool cancelable
     AD_RETURN_ON_NULL(options, AD_ERROR);
     AD_RETURN_ON_NULL(prompt, AD_ERROR);
 
-    menu = ad_menuCreate(title, prompt, cancelable);
+    menu = ad_menuCreate(title, prompt, cancelable, false);
     AD_RETURN_ON_NULL(menu, AD_ERROR);
 
     for (idx = 0; idx < optionCount; idx++) {

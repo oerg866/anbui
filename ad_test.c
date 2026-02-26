@@ -68,7 +68,7 @@ int main(int argc, char *argv[]) {
         "Select your favorite philosophy:\n"
         "Please note that your burgering is dependent\n"
         "on taste of burger cheese on you.",
-        true);
+        true, false);
 
     for (i = 0; i < 10; i++) {
         ad_menuAddItemFormatted(menu, "Item %zu: Burger Cheese is Cheese on Burger", i);

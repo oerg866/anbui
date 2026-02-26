@@ -32,6 +32,21 @@
 #define AD_KEY_LEFT     0xFFFFFF4B
 #define AD_KEY_RIGHT    0xFFFFFF4D
 
+#define AD_KEY_F1       0xFFFFFF30
+#define AD_KEY_F2       0xFFFFFF31
+#define AD_KEY_F3       0xFFFFFF32
+#define AD_KEY_F4       0xFFFFFF33
+#define AD_KEY_F5       0xFFFFFF34
+#define AD_KEY_F6       0xFFFFFF35
+#define AD_KEY_F7       0xFFFFFF36
+#define AD_KEY_F8       0xFFFFFF37
+#define AD_KEY_F9       0xFFFFFF38
+#define AD_KEY_F10      0xFFFFFF39
+#define AD_KEY_F11      0xFFFFFF3A
+#define AD_KEY_F12      0xFFFFFF3B
+
+#define AD_IS_F_KEY(ch) ((ch >= AD_KEY_F1) && (ch <= AD_KEY_F12))
+
 #define AD_TEXT_ELEMENT_SIZE 256
 
 #define AD_CONTENT_MARGIN_H 2
@@ -113,8 +128,8 @@ struct ad_ProgressBox {
 struct ad_Menu {
     ad_Object           object;
     bool                cancelable;
+    bool                enableFKeys;
     bool                hasToScroll;
-    uint32_t            selectedIndex;
     uint16_t            width;
     uint16_t            height;
     uint16_t            itemX;
