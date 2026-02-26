@@ -66,6 +66,8 @@ void            ad_clearFooter          (void);
 ad_Menu        *ad_menuCreate           (const char * title, const char *prompt, bool cancelable, bool enableFKeys);
 /*  Adds an item to a menu. Returns AD_ERROR on error or the index of the newly added item on success. */
 int             ad_menuAddItemFormatted (ad_Menu *menu, const char *format, ...);
+/*  Returns the index of the currently selected menu item */
+size_t          ad_menuGetSelectedItem  (ad_Menu *obj);
 /*  Returns the item label for a menu */
 bool            ad_menuGetItemText      (ad_Menu *obj, size_t index, char *dst, size_t dstSize);
 /*  Returns the amount of selectable items a menu has */

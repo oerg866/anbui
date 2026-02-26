@@ -109,6 +109,10 @@ int ad_menuAddItemFormatted(ad_Menu *obj, const char *format, ...) {
     return obj->itemCount - 1;
 }
 
+size_t ad_menuGetSelectedItem(ad_Menu *obj) {
+    return obj->currentSelection;
+}
+
 bool ad_menuGetItemText(ad_Menu *obj, size_t index, char *dst, size_t dstSize) {
     AD_RETURN_ON_NULL(obj, false);
     AD_RETURN_ON_NULL(dst, false);
