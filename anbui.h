@@ -59,9 +59,8 @@ void            ad_clearFooter          (void);
 
 /*  Create a menu with given title and prompt. Cancelable means the menu can be cancelled using the ESC key.
     Must be deallocated with ad_menuDestroy */
-ad_Menu        *ad_menuCreate           (const char * title, const char *prompt, bool cancelable);
-/*  Adds an item to a menu */
-void            ad_menuAddItemFormatted (ad_Menu *menu, const char *format, ...);
+/*  Adds an item to a menu. Returns AD_ERROR on error or the index of the newly added item on success. */
+int             ad_menuAddItemFormatted (ad_Menu *menu, const char *format, ...);
 /*  Returns the item label for a menu */
 bool            ad_menuGetItemText      (ad_Menu *obj, size_t index, char *dst, size_t dstSize);
 /*  Returns the amount of selectable items a menu has */

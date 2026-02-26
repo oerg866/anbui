@@ -91,17 +91,21 @@ ad_Menu *ad_menuCreate(const char *title, const char *prompt, bool cancelable) {
     return menu;
 }
 
-void ad_menuAddItemFormatted(ad_Menu *obj, const char *format, ...) {
+int ad_menuAddItemFormatted(ad_Menu *obj, const char *format, ...) {
     va_list args;
 
-    assert(obj);    
+    AD_RETURN_ON_NULL(obj, AD_ERROR);
+
     obj->itemCount++;
     obj->items = ad_textElementArrayResize(obj->items, obj->itemCount);
-    assert(obj->items);
+    
+    AD_RETURN_ON_NULL(obj->items, AD_ERROR);
 
     va_start(args, format);
     vsnprintf(obj->items[obj->itemCount-1].text, AD_TEXT_ELEMENT_SIZE, format, args);
     va_end(args);
+
+    return obj->itemCount - 1;
 }
 
 bool ad_menuGetItemText(ad_Menu *obj, size_t index, char *dst, size_t dstSize) {
