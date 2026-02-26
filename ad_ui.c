@@ -73,7 +73,7 @@ static bool ad_menuPaint(ad_Menu *menu) {
 
     ad_displayTextElementArray(menu->itemX, menu->itemY, menu->itemWidth, menu->itemCount, menu->items);
 
-    ad_menuSelectItemAndDraw(menu, 0);
+    ad_menuSelectItemAndDraw(menu, menu->currentSelection);
 
     return true;
 }
