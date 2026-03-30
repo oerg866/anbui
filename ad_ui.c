@@ -328,6 +328,9 @@ void ad_progressBoxMultiUpdate(ad_ProgressBox *pb, size_t index, uint32_t progre
 
     prog = &pb->items[index];
 
+    /*  Cap the progress bar */
+    progress = AD_MIN(prog->outOf, progress);
+
     /*  Save raw value, it might be useful somewhere later */
     prog->rawValue = progress;
 
