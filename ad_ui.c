@@ -342,12 +342,19 @@ void ad_progressBoxMultiUpdate(ad_ProgressBox *pb, size_t index, uint32_t progre
         return;
     }
 
-    newPaintLength = newX - prog->currentX;
 
-    ad_setCursorPosition(pb->boxX + prog->currentX, pb->boxY + index);
-    ad_setColor(ad_s_con.progressFillBg, ad_s_con.progressFillFg);
+    if (newX > prog->currentX) {
+        newPaintLength = newX - prog->currentX;
 
-    ad_putChar(ad_s_con.progressChar, newPaintLength);
+        ad_setCursorPosition(pb->boxX + prog->currentX, pb->boxY + index);
+        ad_setColor(ad_s_con.progressFillBg, ad_s_con.progressFillFg);
+        ad_putChar(ad_s_con.progressChar, newPaintLength);
+    } else {
+        newPaintLength = prog->currentX - newX;
+        ad_setCursorPosition(pb->boxX + newX, pb->boxY + index);
+        ad_setColor(ad_s_con.progressBlankBg, ad_s_con.progressBlankFg);
+        ad_putChar(ad_s_con.progressChar, newPaintLength);
+    }
 
     hal_flush();
     
