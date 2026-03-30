@@ -18,7 +18,8 @@
 #include "anbui.h"
 
 #if defined(__unix__) || defined(__APPLE__) || defined(_WIN32)
-# define AD_HAL_HAS_POPEN
+# define POPEN popen
+# define PCLOSE pclose
 #endif
 
 /* This is a set of functions that a platform implementation needs to implement */

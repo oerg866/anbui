@@ -22,6 +22,20 @@
 #include "ad_priv.h"
 #include "ad_hal.h"
 
+#define TMP_PROMPT_SIZE (512)
+
+/*  Macro to be put at the end of a variable declaration block at the start of a function
+    to format a prompt... This code pattern is used everywhere here so might as well deduplicate
+    it a bit .... */
+#define __FORMAT_BUFFER(bufName, bufSize, format) \
+    static char bufName[bufSize]; /* Static avoids stack issue on old platforms */ \
+    va_list vl; \
+    if (format != NULL) { \
+        va_start(vl, format); \
+        vsnprintf(bufName,bufSize,format,vl); \
+        va_end(vl); \
+    } \
+
 static void ad_textFileBoxDestroy(ad_TextFileBox *tfb);
 
 static void ad_menuSelectItemAndDraw(ad_Menu *menu, size_t newSelection) {
@@ -185,31 +199,19 @@ static int32_t ad_menuExecuteDirectlyInternal(const char *title, bool cancelable
 }
 
 int32_t ad_menuExecuteDirectly(const char *title, bool cancelable, size_t optionCount, const char *options[], const char *promptFormat, ...) {
-    char tmpPrompt[1024];
-    va_list args;
-    va_start(args, promptFormat);
-    vsnprintf(tmpPrompt, sizeof(tmpPrompt), promptFormat, args);
-    va_end(args);
+    __FORMAT_BUFFER(tmpPrompt, TMP_PROMPT_SIZE, promptFormat);
     return ad_menuExecuteDirectlyInternal(title, cancelable, optionCount, options, tmpPrompt);
 }
 
 int32_t ad_yesNoBox(const char *title, bool cancelable, const char *promptFormat, ...) {
     const char *options[] = {"Yes", "No"};
-    char tmpPrompt[1024];
-    va_list args;
-    va_start(args, promptFormat);
-    vsnprintf(tmpPrompt, sizeof(tmpPrompt), promptFormat, args);
-    va_end(args);
+    __FORMAT_BUFFER(tmpPrompt, TMP_PROMPT_SIZE, promptFormat);
     return ad_menuExecuteDirectlyInternal(title, cancelable, AD_ARRAY_SIZE(options), options, tmpPrompt);
 }
 
 int32_t ad_okBox(const char *title, bool cancelable, const char *promptFormat, ...) {
     const char *options[] = {"OK"};
-    char tmpPrompt[1024];
-    va_list args;
-    va_start(args, promptFormat);
-    vsnprintf(tmpPrompt, sizeof(tmpPrompt), promptFormat, args);
-    va_end(args);
+    __FORMAT_BUFFER(tmpPrompt, TMP_PROMPT_SIZE, promptFormat);
     return ad_menuExecuteDirectlyInternal(title, cancelable, AD_ARRAY_SIZE(options), options, tmpPrompt);
 }
 
@@ -281,11 +283,7 @@ bool ad_progressBoxPaint (ad_ProgressBox *pb) {
 
 ad_ProgressBox *ad_progressBoxSingleCreate(const char *title, uint32_t maxProgress, const char *promptFormat, ...) {
     ad_ProgressBox *pb = NULL;
-    char tmpPrompt[1024];
-    va_list args;
-    va_start(args, promptFormat);
-    vsnprintf(tmpPrompt, sizeof(tmpPrompt), promptFormat, args);
-    va_end(args);
+    __FORMAT_BUFFER(tmpPrompt, TMP_PROMPT_SIZE, promptFormat);
 
     pb = ad_progressBoxMultiCreate(title, "%s", tmpPrompt);
 
@@ -299,17 +297,12 @@ ad_ProgressBox *ad_progressBoxSingleCreate(const char *title, uint32_t maxProgre
 
 ad_ProgressBox *ad_progressBoxMultiCreate(const char *title, const char *promptFormat, ...) {
     ad_ProgressBox *pb = NULL;
-    char tmpPrompt[1024];
-    va_list args;
+    __FORMAT_BUFFER(tmpPrompt, TMP_PROMPT_SIZE, promptFormat);
 
     AD_RETURN_ON_NULL(title, NULL);
     AD_RETURN_ON_NULL(promptFormat, NULL);
     pb = calloc(1, sizeof(ad_ProgressBox));
     AD_RETURN_ON_NULL(pb, NULL);
-
-    va_start(args, promptFormat);
-    vsnprintf(tmpPrompt, sizeof(tmpPrompt), promptFormat, args);
-    va_end(args);
 
     pb->prompt = ad_multiLineTextCreate(tmpPrompt);
     ad_textElementAssign(&pb->object.title, title);
@@ -548,7 +541,7 @@ int32_t ad_textFileBox(const char *title, const char *fileName) {
     return ret;
 }
 
-#if defined(AD_HAL_HAS_POPEN)
+#if defined(POPEN)
 
 static void ad_commandBoxRedraw(const ad_TextElement *lines, size_t lineCount, uint16_t contentWidth, size_t index, uint16_t x, uint16_t y) {
     size_t curLine;
@@ -594,7 +587,7 @@ int32_t ad_runCommandBox(const char *title, const char *command) {
     AD_RETURN_ON_NULL(lines, AD_ERROR);
 
     /* Run the actual command */
-    pipe = popen(command, "r");
+    pipe = POPEN(command, "r");
 
     while (fgets(lines[lineWriteIndex % visibleLines].text, AD_TEXT_ELEMENT_SIZE, pipe) != NULL) {
         /* Fix newline */
@@ -607,15 +600,14 @@ int32_t ad_runCommandBox(const char *title, const char *command) {
 
     ad_objectUnpaint(&obj);
 
-    return WEXITSTATUS(pclose(pipe));
+    return WEXITSTATUS(PCLOSE(pipe));
 }
 #else
 
-#error _POSIX_C_SOURCE
 int32_t ad_runCommandBox(const char *title, const char *command) {
     AD_UNUSED_PARAMETER(title);
     AD_UNUSED_PARAMETER(command);
-    return -1;
+    return AD_ERROR;
 }
 #endif
 
