@@ -75,7 +75,8 @@
 
 #define AD_ROUND_HACK_WTF(type, x) ((type)((x) + 0.5))
 
-#define AD_BUF_SIZE 512
+#define CAPPED_ADD(x, toAdd, max) ( ((max - x < toAdd)) ? max : (x + toAdd) )
+#define CAPPED_SUB(x, toSub, min) ( ((x - min < toSub)) ? min : (x - toSub) )
 
 /* Structures */
 
@@ -117,6 +118,7 @@ typedef struct {
 
 struct ad_ProgressBox {
     ad_Object           object;
+    size_t              currentSelection;
     size_t              itemCount;
     ad_Progress        *items;
     uint16_t            boxX;
@@ -153,7 +155,6 @@ struct ad_MultiSelector {
     ad_Object               object;
     bool                    cancelable;
     bool                    hasToScroll;
-    uint32_t                selectedIndex;
     uint16_t                width;
     uint16_t                height;
     uint16_t                itemX;

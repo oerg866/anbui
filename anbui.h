@@ -46,6 +46,11 @@ typedef struct ad_ProgressBox   ad_ProgressBox;
 typedef struct ad_Menu          ad_Menu;
 typedef struct ad_MultiSelector ad_MultiSelector;
 typedef struct ad_ConsoleConfig ad_ConsoleConfig;
+typedef ad_ProgressBox ad_Mixer;
+
+/*  Mixer callback
+    Called when a mixer control is changed with the index and the value. */
+typedef void (*ad_MixerCallback)        (size_t index, uint32_t value);
 
 /*  Initializes AnbUI.
     This call is REQUIRED before using *ANY* other functions declared here. */
@@ -107,8 +112,9 @@ ad_ProgressBox *ad_progressBoxSingleCreate (const char *title, uint32_t maxProgr
 ad_ProgressBox *ad_progressBoxMultiCreate  (const char *title, const char *prompt, ...);
 /*  Deallocates the progress box */
 void            ad_progressBoxDestroy   (ad_ProgressBox *pb);
-/*  Adds a row to the progress box. I.e. a label + a progress bar. */
-void            ad_progressBoxAddItem   (ad_ProgressBox *pb, const char *label, uint32_t maxProgress);
+/*  Adds a row to the progress box. I.e. a label + a progress bar.
+    Returns the index of the new item (SIZE_MAX on error) */
+size_t          ad_progressBoxAddItem   (ad_ProgressBox *pb, const char *label, uint32_t maxProgress);
 /*  This must be called once before calling progressBoxUpdate so that the actual box gets drawn after adding items */
 bool            ad_progressBoxPaint     (ad_ProgressBox *pb);
 /*  Updates the progress box with the given progress value. The fill level is calculated as progress-out-of-maxProgress. */
@@ -120,6 +126,27 @@ void            ad_progressBoxMultiUpdate(ad_ProgressBox *pb, size_t index, uint
 void            ad_progressBoxSetMaxProgress(ad_ProgressBox *obj, size_t index, uint32_t maxProgress);
 /*  Set the character and colors used for filling the progress bar (normally this is is a space) */
 void            ad_progressBoxSetCharAndColor(char fillChar, uint8_t colorBlankBg, uint8_t colorBlankFg, uint8_t colorFillBg, uint8_t colorFillFg);
+
+/*  Creates a Mixer box with the given title and prompt. This is almost identical to a progressBoxMulti but the element
+    selection acts like in a menu and the bargraph for each item is changeable.
+    It may be used to implement audio mixers or somesuch.  */
+ad_Mixer       *ad_mixerCreate          (const char *title, const char *prompt, ...);
+void            ad_mixerDestroy         (ad_Mixer *mix);
+/*  Adds an item to the mixer box. I.e. a label + a bargraph.
+    Returns the index of the new item (SIZE_MAX on error) */
+size_t          ad_mixerAddItem         (ad_Mixer *mix, const char *label, uint32_t startValue, uint32_t maxValue);
+/*  This must be called once before calling mixerUpdate so that the actual box gets drawn after adding items */
+bool            ad_mixerPaint           (ad_Mixer *mix);
+/*  Updates the n-th mixer bar with the given value. The fill level is calculated as progress-out-of-maxValue. */
+void            ad_mixerSetValue        (ad_Mixer *mix, size_t index, uint32_t value);
+/*  Set the character and colors used for filling the mixer bar (this value is shared with the progress bars so careful) */
+void            ad_mixerSetCharAndColor (char fillChar, uint8_t colorBlankBg, uint8_t colorBlankFg, uint8_t colorFillBg, uint8_t colorFillFg);
+/*  Run the mixer interactive selector/editor where the user can modify values.
+    cb is the callback that is called whenever a value is changed in the TUI. */
+int32_t         ad_mixerExecute         (ad_Mixer *mix, ad_MixerCallback cb);
+/*  Get the mixer value of the selected index */
+uint32_t        ad_mixerGetValue        (ad_Mixer *mix, size_t index);
+
 
 /*  Displays a scrollable display box which contains the contents of the text file pointed to by fileName.
     It does NOT support horizontal scrolling, lines that are too long will be cut off and truncated with a "..." suffix.

@@ -379,21 +379,113 @@ static ad_Progress *ad_progressArrayResize(ad_Progress *ptr, size_t newCount) {
     return ptr;
 }
 
-void ad_progressBoxAddItem(ad_ProgressBox *obj, const char *label, uint32_t maxProgress) {
-    if (obj == NULL || label == NULL ) return;
+size_t ad_progressBoxAddItem(ad_ProgressBox *obj, const char *label, uint32_t maxProgress) {
+    if (obj == NULL || label == NULL ) return SIZE_MAX;
 
     obj->itemCount++;
     obj->items = ad_progressArrayResize(obj->items, obj->itemCount);
-    
+
     assert(obj->items);
 
     obj->items[obj->itemCount-1].outOf = maxProgress;
     ad_textElementAssign(&obj->items[obj->itemCount-1].label, label);
+
+    return obj->itemCount - 1;
 }
 
 void ad_progressBoxSetMaxProgress(ad_ProgressBox *obj, size_t index, uint32_t maxProgress) {
     if (obj == NULL || index >= obj->itemCount) return;
     obj->items[index].outOf = maxProgress;
+}
+
+ad_Mixer *ad_mixerCreate(const char *title, const char *prompt, ...) {
+    __FORMAT_BUFFER(tmpPrompt, TMP_PROMPT_SIZE, prompt);
+    return (ad_Mixer *) ad_progressBoxMultiCreate(title, "%s", tmpPrompt);
+}
+
+void ad_mixerDestroy(ad_Mixer *mix) {
+    ad_progressBoxDestroy((ad_ProgressBox *) mix);
+}
+
+size_t ad_mixerAddItem(ad_Mixer *mix, const char *label, uint32_t startValue, uint32_t maxValue) {
+    size_t item = ad_progressBoxAddItem((ad_ProgressBox *) mix, label, maxValue);
+
+    if (item != SIZE_MAX) {
+        ad_mixerSetValue(mix, item, startValue);
+    }
+
+    return item;
+}
+
+static void ad_mixerSelectItemAndDraw(ad_Mixer *mix, size_t newSelection) {
+    size_t curSelection = mix->currentSelection;
+    uint16_t curY = mix->boxY + curSelection;
+    uint16_t newY = mix->boxY + newSelection;
+    
+    ad_displayStringCropped(mix->items[curSelection].label.text, mix->labelX, curY, mix->labelWidth, ad_s_con.objectBg, ad_s_con.objectFg);
+    ad_displayStringCropped(mix->items[newSelection].label.text, mix->labelX, newY, mix->labelWidth, ad_s_con.objectFg, ad_s_con.objectBg);
+    mix->currentSelection = newSelection;
+    hal_flush();
+}
+
+bool ad_mixerPaint(ad_Mixer *mix) {
+    /* first draw the box as we would a progress box */
+    bool ret = ad_progressBoxPaint((ad_ProgressBox *) mix);
+
+    AD_RETURN_ON_NULL(mix, false);
+
+    /* then we simply select the item */
+    if (mix->itemCount == 0) return false;
+
+    ad_mixerSelectItemAndDraw(mix, 0);
+
+    return ret;
+}
+
+void ad_mixerSetValue(ad_Mixer *mix, size_t index, uint32_t value) {
+    ad_progressBoxMultiUpdate((ad_ProgressBox *) mix, index, value);
+}
+
+void ad_mixerSetCharAndColor(char fillChar, uint8_t colorBlankBg, uint8_t colorBlankFg, uint8_t colorFillBg, uint8_t colorFillFg) {
+    ad_progressBoxSetCharAndColor(fillChar, colorBlankBg, colorBlankFg, colorFillBg, colorFillFg);
+}
+
+int32_t ad_mixerExecute(ad_Mixer *mix, ad_MixerCallback cb) {
+    ad_mixerPaint(mix);
+
+    while (true) {
+        ad_Progress *curItem = &mix->items[mix->currentSelection];
+        uint32_t ch = hal_getKey();
+
+        if          (ch == AD_KEY_UP) {
+            size_t newSelection = CAPPED_SUB(mix->currentSelection, 1, 0); 
+            ad_mixerSelectItemAndDraw(mix, newSelection);
+        } else if   (ch == AD_KEY_DOWN) {
+            size_t newSelection = CAPPED_ADD(mix->currentSelection, 1, mix->itemCount - 1);
+            ad_mixerSelectItemAndDraw(mix, newSelection);
+        } else if   (ch == AD_KEY_LEFT) {
+            uint32_t newValue = CAPPED_SUB(curItem->rawValue, 1UL, 0UL);
+            ad_mixerSetValue(mix, mix->currentSelection, newValue);
+            if (cb != NULL) {
+                cb(mix->currentSelection, curItem->rawValue);
+            }
+        } else if   (ch == AD_KEY_RIGHT) {
+            uint32_t newValue = CAPPED_ADD(curItem->rawValue, 1UL, curItem->outOf);
+            ad_mixerSetValue(mix, mix->currentSelection, newValue);
+            if (cb != NULL) {
+                cb(mix->currentSelection, curItem->rawValue);
+            }
+        } else if   (ch == AD_KEY_ENTER) {
+            return (int32_t) mix->currentSelection;
+        } else if   (ch == AD_KEY_ESC) {
+            return AD_CANCELED;
+        } 
+#if DEBUG
+        else {
+            printf("unhandled key: %08x\n", ch);
+        }
+#endif
+    }
 }
 
 static inline void ad_textFileBoxRedrawLines(ad_TextFileBox *tfb) {
