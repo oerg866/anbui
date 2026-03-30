@@ -15,13 +15,14 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <limits.h>
 
 #define AD_YESNO_YES    (0)
 #define AD_YESNO_NO     (1)
 #define AD_CANCELED     (-1)
 /* Return code for F-Keys */
 #define AD_F_KEY(x)     (-(10+(x)))
-#define AD_ERROR        (-INT32_MAX)
+#define AD_ERROR        (-INT_MAX)
 
 #define COLOR_BLACK 0
 #define COLOR_BLUE  1
