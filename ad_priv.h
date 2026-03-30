@@ -121,6 +121,7 @@ struct ad_ProgressBox {
     uint16_t            boxX;
     uint16_t            boxY;
     uint16_t            labelX;
+    uint16_t            labelWidth;
     uint16_t            boxWidth;
     ad_MultiLineText   *prompt;
 };

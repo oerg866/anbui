@@ -228,7 +228,6 @@ bool ad_progressBoxPaint (ad_ProgressBox *pb) {
     size_t expectedWidth;
     size_t promptWidth;
     size_t promptHeight;
-    size_t labelWidth;
     size_t pbIndex;
     size_t pbDefaultWidth = ad_objectGetMaximumContentWidth() * 60 / 100;
     
@@ -238,7 +237,7 @@ bool ad_progressBoxPaint (ad_ProgressBox *pb) {
     promptHeight = (pb->prompt != NULL) ? pb->prompt->lineCount : 0;
     promptWidth = (pb->prompt != NULL) ? ad_textElementArrayGetLongestLength(pb->prompt->lineCount, pb->prompt->lines) : 0;
 
-    labelWidth = ad_progressBoxGetLongestLabelLength(pb);
+    pb->labelWidth = ad_progressBoxGetLongestLabelLength(pb);
 
     /* Standard width = label width + 60% of screen for the bar
        Maximum width = text length + margin, capped to maximum object width */
@@ -255,8 +254,8 @@ bool ad_progressBoxPaint (ad_ProgressBox *pb) {
         pb->boxX = pb->labelX;
     } else {
         /* If this is a multi-item box, the box starts *after* the label. */
-        pb->boxX = pb->labelX + labelWidth + 1 + 1;
-        pb->boxWidth -= (labelWidth + 1);
+        pb->boxX = pb->labelX + pb->labelWidth + 1 + 1;
+        pb->boxWidth -= (pb->labelWidth + 1);
     }
 
     if (pb->prompt) {   
@@ -272,7 +271,7 @@ bool ad_progressBoxPaint (ad_ProgressBox *pb) {
 
         /* Draw the bar labels ONLY if it's a multi-item box */
         if (pb->itemCount > 1) {
-            ad_displayStringCropped(pb->items[pbIndex].label.text, pb->labelX, y, labelWidth, ad_s_con.objectBg, ad_s_con.objectFg);
+            ad_displayStringCropped(pb->items[pbIndex].label.text, pb->labelX, y, pb->labelWidth, ad_s_con.objectBg, ad_s_con.objectFg);
         }
     }
 
