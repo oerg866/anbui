@@ -110,6 +110,7 @@ struct ad_TextFileBox {
 
 typedef struct {
     ad_TextElement      label;
+    uint32_t            rawValue;
     uint32_t            outOf;
     uint16_t            currentX;
 } ad_Progress;

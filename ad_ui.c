@@ -328,6 +328,9 @@ void ad_progressBoxMultiUpdate(ad_ProgressBox *pb, size_t index, uint32_t progre
 
     prog = &pb->items[index];
 
+    /*  Save raw value, it might be useful somewhere later */
+    prog->rawValue = progress;
+
     /*  round / lround for values > 1 in MUSL gets clipped to 1.0 ?????? am I stupid?
         Anyway this hack is here until I get some sleep.. */
     newX = AD_ROUND_HACK_WTF(uint16_t, ((double) pb->boxWidth * (double) progress) / ((double) prog->outOf));
