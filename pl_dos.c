@@ -140,10 +140,7 @@ void hal_initConsole(ad_ConsoleConfig *cfg) {
     cfg->width  = s_consoleW;
     cfg->height = s_consoleH;
 
-    memset(s_printBuffer, 0x00, sizeof(s_printBuffer));
-
     hal_restoreConsole();
-
 }
 
 void hal_restoreConsole(void) {
