@@ -190,7 +190,18 @@ uint32_t hal_getKey(void) {
         case 0x00500000: return AD_KEY_DOWN;
         case 0x004B0000: return AD_KEY_LEFT;
         case 0x004D0000: return AD_KEY_RIGHT;
-        
+        case 0x003B0000: return AD_KEY_F1;
+        case 0x003C0000: return AD_KEY_F2;
+        case 0x003D0000: return AD_KEY_F3;
+        case 0x003E0000: return AD_KEY_F4;
+        case 0x003F0000: return AD_KEY_F5;
+        case 0x00400000: return AD_KEY_F6;
+        case 0x00410000: return AD_KEY_F7;
+        case 0x00420000: return AD_KEY_F8;
+        case 0x00430000: return AD_KEY_F9;
+        case 0x00440000: return AD_KEY_F10;
+        case 0x00850000: return AD_KEY_F11;
+        case 0x00860000: return AD_KEY_F12;
         default: return c;
     }    
 }
