@@ -22,6 +22,12 @@ void sleep(double seconds) {
     while (clock() < start_time + (seconds * CLOCKS_PER_SEC));
 }
 
+static void mixerOnChange(void *userData, size_t index, uint32_t value) {
+    (void)(index);
+    (void)(userData);
+    ad_setFooterText("Selected value: %lu", value);
+}
+
 int main(int argc, char *argv[]) {
     ad_Menu        *menu = NULL;
     ad_ProgressBox *prog = NULL;
@@ -41,10 +47,10 @@ int main(int argc, char *argv[]) {
         const char *cheese[] = { "Cheddar", "American", "None" };
         const char *pickles[] = { "Yes", "No" };
         
-        ad_multiSelectorAddItem(sel, "What kind of bun?", 2, buns);
-        ad_multiSelectorAddItem(sel, "Do you want bacon?", 2, bacon);
-        ad_multiSelectorAddItem(sel, "What kind of cheese?", 3, cheese);
-        ad_multiSelectorAddItem(sel, "Do you want pickles?", 2, pickles);
+        ad_multiSelectorAddItem(sel, "What kind of bun?",       2, 0, buns);
+        ad_multiSelectorAddItem(sel, "Do you want bacon?",      2, 0, bacon);
+        ad_multiSelectorAddItem(sel, "What kind of cheese?",    3, 0, cheese);
+        ad_multiSelectorAddItem(sel, "Do you want pickles?",    2, 0, pickles);
 
         ad_multiSelectorExecute(sel);
 
@@ -64,11 +70,10 @@ int main(int argc, char *argv[]) {
 
     ad_textFileBox("demara.txt", "demara.txt");
 
-    menu = ad_menuCreate("Selector of death",
+    menu = ad_menuCreate("Selector of death", true, false,
         "Select your favorite philosophy:\n"
         "Please note that your burgering is dependent\n"
-        "on taste of burger cheese on you.",
-        true, false);
+        "on taste of burger cheese on you.");
 
     for (i = 0; i < 10; i++) {
         ad_menuAddItemFormatted(menu, "Item %zu: Burger Cheese is Cheese on Burger", i);
@@ -100,6 +105,21 @@ int main(int argc, char *argv[]) {
     }
 
     ad_progressBoxDestroy(prog);
+
+
+    /* test mixer */
+    {
+        ad_Mixer *mixer = ad_mixerCreate("Burger Editor", 
+            "Burger your burger as burgered.\n");
+
+        ad_mixerAddItem(mixer, "Minutes to grill patty", 0, 5);
+        ad_mixerAddItem(mixer, "Amount of patties", 0, 5);
+        ad_mixerAddItem(mixer, "Amount of Bacon strips", 0, 10);
+        ad_mixerAddItem(mixer, "Amount of pickles", 0, 10);
+        ad_mixerAddItem(mixer, "Total Burger Count", 0, 20);
+        ad_mixerExecute(mixer, false, mixerOnChange, NULL);
+        ad_mixerDestroy(mixer);
+    }
 
     /* Test Multi Progress Box */
 
