@@ -456,7 +456,8 @@ bool ad_mixerPaint(ad_Mixer *mix) {
     /* then we simply select the item */
     if (mix->itemCount == 0) return false;
 
-    ad_mixerSelectItemAndDraw(mix, 0);
+    /* Highlight the current selection */
+    ad_mixerSelectItemAndDraw(mix, mix->currentSelection);
 
     return ret;
 }
