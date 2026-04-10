@@ -514,6 +514,13 @@ int32_t ad_mixerExecute(ad_Mixer *mix, bool enableFKeys, ad_MixerCallback cb, vo
     }
 }
 
+uint32_t ad_mixerGetValue (ad_Mixer *mix, size_t index) {
+    AD_RETURN_ON_NULL(mix, UINT32_MAX);
+    if (index > mix->itemCount) return false;
+    return mix->items[index].rawValue;
+}
+
+
 static inline void ad_textFileBoxRedrawLines(ad_TextFileBox *tfb) {
     ad_displayStringArrayRange(&tfb->lines, (size_t)tfb->currentIndex, (size_t) tfb->linesOnScreen, tfb->textX, tfb->textY, (size_t) tfb->lineWidth);
 }
