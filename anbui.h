@@ -49,8 +49,8 @@ typedef struct ad_ConsoleConfig ad_ConsoleConfig;
 typedef ad_ProgressBox ad_Mixer;
 
 /*  Mixer callback
-    Called when a mixer control is changed with the index and the value. */
-typedef void (*ad_MixerCallback)        (size_t index, uint32_t value);
+    Called when a mixer control is changed with some arbitrary user data, the index and the value. */
+typedef void (*ad_MixerCallback)        (void *userData, size_t index, uint32_t value);
 
 /*  Initializes AnbUI.
     This call is REQUIRED before using *ANY* other functions declared here. */
@@ -142,8 +142,9 @@ void            ad_mixerSetValue        (ad_Mixer *mix, size_t index, uint32_t v
 /*  Set the character and colors used for filling the mixer bar (this value is shared with the progress bars so careful) */
 void            ad_mixerSetCharAndColor (char fillChar, uint8_t colorBlankBg, uint8_t colorBlankFg, uint8_t colorFillBg, uint8_t colorFillFg);
 /*  Run the mixer interactive selector/editor where the user can modify values.
-    cb is the callback that is called whenever a value is changed in the TUI. */
-int32_t         ad_mixerExecute         (ad_Mixer *mix, ad_MixerCallback cb);
+    cb is the callback that is called whenever a value is changed in the TUI. 
+    cbUserData is a raw pointer passed through to the call back (e.g. local context) */
+int32_t         ad_mixerExecute         (ad_Mixer *mix, bool enableFKeys, ad_MixerCallback cb, void *cbUserData);
 /*  Get the mixer value of the selected index */
 uint32_t        ad_mixerGetValue        (ad_Mixer *mix, size_t index);
 

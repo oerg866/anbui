@@ -464,7 +464,7 @@ void ad_mixerSetCharAndColor(char fillChar, uint8_t colorBlankBg, uint8_t colorB
     ad_progressBoxSetCharAndColor(fillChar, colorBlankBg, colorBlankFg, colorFillBg, colorFillFg);
 }
 
-int32_t ad_mixerExecute(ad_Mixer *mix, ad_MixerCallback cb) {
+int32_t ad_mixerExecute(ad_Mixer *mix, bool enableFKeys, ad_MixerCallback cb, void *cbUserData) {
     ad_mixerPaint(mix);
 
     while (true) {
@@ -481,13 +481,13 @@ int32_t ad_mixerExecute(ad_Mixer *mix, ad_MixerCallback cb) {
             uint32_t newValue = CAPPED_SUB(curItem->rawValue, 1UL, 0UL);
             ad_mixerSetValue(mix, mix->currentSelection, newValue);
             if (cb != NULL) {
-                cb(mix->currentSelection, curItem->rawValue);
+                cb(cbUserData, mix->currentSelection, curItem->rawValue);
             }
         } else if   (ch == AD_KEY_RIGHT) {
             uint32_t newValue = CAPPED_ADD(curItem->rawValue, 1UL, curItem->outOf);
             ad_mixerSetValue(mix, mix->currentSelection, newValue);
             if (cb != NULL) {
-                cb(mix->currentSelection, curItem->rawValue);
+                cb(cbUserData, mix->currentSelection, curItem->rawValue);
             }
         } else if   (ch == AD_KEY_ENTER) {
             return (int32_t) mix->currentSelection;
