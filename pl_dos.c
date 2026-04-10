@@ -17,23 +17,13 @@
 #include <dos.h>
 #include <conio.h>
 
+#if defined(_MSC_VER) && (_MSC_VER < 800)
+#include <standard.h>
+#endif
+
+
 #include "ad_priv.h"
 #include "ad_hal.h"
-
-#if defined(_MSC_VER)
-# include <intpack.h>
-# include <standard.h>
-# define callInt int86
-#endif
-
-#if defined(__WATCOMC__)
-#include <i86.h>
-# if defined(__386__) && defined(__DOS__)
-#  define callInt int386
-# else
-#  define callInt int86
-# endif
-#endif
 
 static uint8_t s_biosColor = 0x00;
 
@@ -42,9 +32,6 @@ static uint16_t s_consoleH;
 
 static uint16_t s_oldCursorState = 0x0000;
 
-#ifndef _far /* This is purely for VSCode to stop bugging out.... */
-#define _far
-#endif
 
 typedef struct {
     char c;         /* character */
@@ -144,7 +131,7 @@ void hal_initConsole(ad_ConsoleConfig *cfg) {
 }
 
 void hal_restoreConsole(void) {
-    s_vgaMemory = MK_FP(0xB800, 0x0000);
+    s_vgaMemory = (void _far *) MK_FP(0xB800, 0x0000);
     s_vgaMemoryUpperBound = s_vgaMemory + s_consoleH * s_consoleW * 2;
     s_cursorPtr = s_vgaMemory;
     

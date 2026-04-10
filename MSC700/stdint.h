@@ -22,6 +22,14 @@ typedef signed long int32_t;
 #define INT32_MIN LONG_MIN
 #define INT32_MAX LONG_MAX
 
+#if defined(_MSC_VER) && (MSC_VER > 0x700) && !defined(SUPER_STRICT)
+/* This annoying warning pops up all the time */
+#pragma warning(disable: 4761) /* MS C: integral size mismatch in argument */
+#endif
+
+/* For some reason Microsoft C does not have SIZE_MAX ?? */
+#define SIZE_MAX UINT16_MAX
+
 #ifndef inline
 #define inline __inline
 

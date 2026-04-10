@@ -3,6 +3,9 @@
 #ifndef _STDBOOL_H_
 #define _STDBOOL_H_
 
-typedef enum { false, true } bool;
+#if !defined(bool)
+typedef enum { false, true } _myBool;
+#define bool _myBool
+#endif
 
 #endif
