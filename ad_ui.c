@@ -158,11 +158,14 @@ int32_t ad_menuExecute(ad_Menu *menu) {
         } else if   (ch == AD_KEY_DOWN) {
             ad_menuSelectItemAndDraw(menu, (menu->currentSelection + 1) % menu->itemCount);
         } else if   (ch == AD_KEY_ENTER) {
+            ad_objectUnpaint(&menu->object);
             return menu->currentSelection;
         } else if   (menu->enableFKeys && AD_IS_F_KEY(ch)) {
             uint32_t fKeyIndex = ch - AD_KEY_F1;
+            ad_objectUnpaint(&menu->object);
             return AD_F_KEY((int32_t) (fKeyIndex));
         } else if   (menu->cancelable && (ch == AD_KEY_ESC)) {
+            ad_objectUnpaint(&menu->object);
             return AD_CANCELED;
         }
 #if DEBUG
@@ -171,6 +174,8 @@ int32_t ad_menuExecute(ad_Menu *menu) {
         }
 #endif
     }
+
+    ad_objectUnpaint(&menu->object);
 }
 
 void ad_menuDestroy(ad_Menu *menu) {
@@ -489,9 +494,15 @@ int32_t ad_mixerExecute(ad_Mixer *mix, bool enableFKeys, ad_MixerCallback cb, vo
             if (cb != NULL) {
                 cb(cbUserData, mix->currentSelection, curItem->rawValue);
             }
+        } else if   (enableFKeys && AD_IS_F_KEY(ch)) {
+            uint32_t fKeyIndex = ch - AD_KEY_F1;
+            ad_objectUnpaint(&mix->object);
+            return AD_F_KEY((int32_t) (fKeyIndex));
         } else if   (ch == AD_KEY_ENTER) {
+            ad_objectUnpaint(&mix->object);
             return (int32_t) mix->currentSelection;
         } else if   (ch == AD_KEY_ESC) {
+            ad_objectUnpaint(&mix->object);
             return AD_CANCELED;
         } 
 #if DEBUG
@@ -876,8 +887,10 @@ int32_t ad_multiSelectorExecute(ad_MultiSelector *menu) {
             curItem->selected = (curItem->selected == 0) ? curItem->optionCount - 1 : curItem->selected - 1;
             ad_multiSelectorSelectOptionAndDraw(menu, menu->currentSelection);
         } else if   (ch == AD_KEY_ENTER) {
+            ad_objectUnpaint(&menu->object);
             return 0;
         } else if   (menu->cancelable && (ch == AD_KEY_ESC)) {
+            ad_objectUnpaint(&menu->object);
             return AD_CANCELED;
         } 
 #if DEBUG
