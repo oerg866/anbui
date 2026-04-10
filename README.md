@@ -54,6 +54,14 @@ Please look at [`anbui.h`](anbui.h).
 
 Some things have a fixed text element size, which, if the platform is known to require more or less than the default, can be overridden with a compilier define (`AD_TEXT_ELEMENT_SIZE_OVERRIDE`)
 
+## Console state buffering
+
+If you plan to overlay elements arbitrarily, you may want to save the screen state.
+
+This is something the API allows for, but this can cause slowdowns on some platforms/systems.
+
+If you wish to disable this for performance reasons, define `AD_DISABLE_CONSOLE_STATE`
+
 ## What's with the name...?
 
 My partner plays a video game called Zenless Zone Zero. I It's not my type of game, but it has a character named Anby Demara. This character has an unholy obsession with burgers, which I relate to :D

@@ -22,6 +22,8 @@
 #include <assert.h>
 #include <stdio.h>
 
+#ifndef AD_DISABLE_CONSOLE_STATE
+
 typedef struct {
     uint8_t fg : 4; 
     uint8_t bg : 4;
@@ -130,3 +132,44 @@ void ad_putString(const char *str) {
         str++;
     }
 }
+
+#else
+
+bool ad_initConsole(ad_ConsoleConfig *cfg) {
+    hal_initConsole(cfg);
+    return true;
+}
+
+void ad_deinitConsole(void) {
+    hal_deinitConsole();
+}
+
+void ad_screenSaveState(void) {
+    assert(false && "Not implemented");
+}
+
+void ad_screenLoadState(void) {
+    assert(false && "Not implemented");
+}
+
+void ad_setColor(uint8_t bg, uint8_t fg) {
+    hal_setColor(bg, fg);
+}
+
+void ad_setCursorPosition(uint16_t x, uint16_t y) {
+    hal_setCursorPosition(x, y);
+}
+
+void ad_putChar(char c, size_t count) {
+    hal_putChar(c, count);
+}
+
+void ad_putString(const char *str) {
+    while(*str) {
+        ad_putChar(*str, 1);
+        str++;
+    }
+}
+
+
+#endif
