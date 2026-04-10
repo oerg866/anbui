@@ -24,24 +24,18 @@
 
 #define TMP_PROMPT_SIZE (512)
 
-/*  Macro to be put at the end of a variable declaration block at the start of a function
-    to format a prompt... This code pattern is used everywhere here so might as well deduplicate
-    it a bit .... */
-#define __FORMAT_BUFFER(bufName, bufSize, format) \
-    static char bufName[bufSize]; /* Static avoids stack issue on old platforms */ \
-    va_list vl; \
-    if (format != NULL) { \
-        va_start(vl, format); \
-        vsnprintf(bufName,bufSize,format,vl); \
-        va_end(vl); \
-    } \
+char *ad_teaGetTextPtr(const ad_StringArray *arr, size_t index){
+    AD_RETURN_ON_NULL(arr, NULL);
+    AD_RETURN_ON_NULL(arr->items[index], NULL);
+    return arr->items[index];
+}
 
 static void ad_textFileBoxDestroy(ad_TextFileBox *tfb);
 
 static void ad_menuSelectItemAndDraw(ad_Menu *menu, size_t newSelection) {
     assert(menu);
-    ad_displayStringCropped(menu->items[menu->currentSelection].text,   menu->itemX, menu->itemY + menu->currentSelection, menu->itemWidth, ad_s_con.objectBg, ad_s_con.objectFg);
-    ad_displayStringCropped(menu->items[newSelection].text,             menu->itemX, menu->itemY + newSelection,           menu->itemWidth, ad_s_con.objectFg, ad_s_con.objectBg);
+    ad_displayStringCropped(ad_teaGetTextPtr(&menu->items, menu->currentSelection), menu->itemX, menu->itemY + menu->currentSelection, menu->itemWidth, ad_s_con.objectBg, ad_s_con.objectFg);
+    ad_displayStringCropped(ad_teaGetTextPtr(&menu->items, newSelection),           menu->itemX, menu->itemY + newSelection,           menu->itemWidth, ad_s_con.objectFg, ad_s_con.objectBg);
     menu->currentSelection = newSelection;
     hal_flush();
 }
@@ -51,17 +45,17 @@ static bool ad_menuPaint(ad_Menu *menu) {
     size_t maximumPromptWidth = 0;
     size_t maximumItemWidth;
     size_t windowContentWidth;
-    size_t promptHeight = (menu->prompt != NULL) ? menu->prompt->lineCount : 0;
+    size_t promptHeight = menu->prompt.count;
     
     AD_RETURN_ON_NULL(menu, false);
 
     /* Get the length of the longest menu item */
-    maximumItemWidth = ad_textElementArrayGetLongestLength(menu->itemCount, menu->items);
+    maximumItemWidth = ad_stringArrayGetLongestLength(&menu->items);
     windowContentWidth = maximumItemWidth + 2 * AD_MENU_ITEM_PADDING_H;
     
     /* Factor in the prompt length into window width calculation */
-    if (menu->prompt) {
-        maximumPromptWidth = ad_textElementArrayGetLongestLength(menu->prompt->lineCount, menu->prompt->lines);
+    if (promptHeight) {
+        maximumPromptWidth = ad_stringArrayGetLongestLength(&menu->prompt);
         windowContentWidth = AD_MAX(windowContentWidth, maximumPromptWidth);
     }
 
@@ -76,50 +70,61 @@ static bool ad_menuPaint(ad_Menu *menu) {
     menu->itemY = ad_objectGetContentY(&menu->object);
 
     /* Print prompt if it exists */
-    if (menu->prompt) {   
-        ad_displayTextElementArray(menu->itemX, menu->itemY, ad_objectGetContentWidth(&menu->object), menu->prompt->lineCount, menu->prompt->lines);
-        menu->itemY += 1 + menu->prompt->lineCount;
+    if (promptHeight) {   
+        ad_displayStringArray(&menu->prompt, menu->itemX, menu->itemY, promptHeight, ad_objectGetContentWidth(&menu->object));
+        menu->itemY += 1 + promptHeight;
     }
 
     /* Print the menu items */
 
     menu->itemX += AD_MENU_ITEM_PADDING_H;
 
-    ad_displayTextElementArray(menu->itemX, menu->itemY, menu->itemWidth, menu->itemCount, menu->items);
+    ad_displayStringArray(&menu->items, menu->itemX, menu->itemY, menu->items.count, menu->itemWidth);
 
     ad_menuSelectItemAndDraw(menu, menu->currentSelection);
 
     return true;
 }
 
-ad_Menu *ad_menuCreate(const char *title, const char *prompt, bool cancelable, bool enableFKeys) {
+ad_Menu *ad_menuCreate(const char *title, bool cancelable, bool enableFKeys, const char *promptFormat, ...) {
     ad_Menu *menu = calloc(1, sizeof(ad_Menu));
-    assert(menu);
+    AD_FORMAT_BUFFER(tmpPrompt, TMP_PROMPT_SIZE, promptFormat);
+
+    AD_RETURN_ON_NULL(menu, NULL);
+    AD_RETURN_ON_NULL(title, NULL);
+    AD_RETURN_ON_NULL(promptFormat, NULL);
 
     menu->cancelable = cancelable;
     menu->enableFKeys = enableFKeys;
-    menu->prompt = ad_multiLineTextCreate(prompt);
+
+    if (!ad_stringArrayCreateFromString(&menu->prompt, tmpPrompt)) {
+        ad_menuDestroy(menu);
+        return NULL;
+    }
     
-    ad_textElementAssign(&menu->object.footer, menu->cancelable ? AD_FOOTER_MENU_CANCELABLE : AD_FOOTER_MENU);
-    ad_textElementAssign(&menu->object.title, title);
+    ad_fixedTextElementAssign(menu->object.footer, menu->cancelable ? AD_FOOTER_MENU_CANCELABLE : AD_FOOTER_MENU);
+    ad_fixedTextElementAssign(menu->object.title, title);
 
     return menu;
 }
 
 int ad_menuAddItemFormatted(ad_Menu *obj, const char *format, ...) {
+    char tmp[AD_TEXT_ELEMENT_SIZE];
     va_list args;
-
+    
     AD_RETURN_ON_NULL(obj, AD_ERROR);
 
-    obj->itemCount++;
-    obj->items = ad_textElementArrayResize(obj->items, obj->itemCount);
-    
-    AD_RETURN_ON_NULL(obj->items, AD_ERROR);
 
     va_start(args, format);
-    vsnprintf(obj->items[obj->itemCount-1].text, AD_TEXT_ELEMENT_SIZE, format, args);
+    vsnprintf(tmp, AD_TEXT_ELEMENT_SIZE-1, format, args);
+    tmp[AD_TEXT_ELEMENT_SIZE-1] = 0x00;
     va_end(args);
 
+    if (!ad_stringArrayAddString(&obj->items, tmp, strlen(tmp))) {
+        return AD_ERROR;
+    }
+
+    obj->itemCount++;
     return obj->itemCount - 1;
 }
 
@@ -131,7 +136,7 @@ bool ad_menuGetItemText(ad_Menu *obj, size_t index, char *dst, size_t dstSize) {
     AD_RETURN_ON_NULL(obj, false);
     AD_RETURN_ON_NULL(dst, false);
     if (index > obj->itemCount) return false;
-    strncpy(dst, obj->items[index].text, dstSize - 1);
+    strncpy(dst, ad_teaGetTextPtr(&obj->items, index), dstSize - 1);
     dst[dstSize - 1] = 0x00;
     return true;    
 }
@@ -171,8 +176,8 @@ int32_t ad_menuExecute(ad_Menu *menu) {
 void ad_menuDestroy(ad_Menu *menu) {
     if (menu) {
         ad_objectUnpaint(&menu->object);
-        ad_multiLineTextDestroy(menu->prompt);
-        free(menu->items);
+        ad_stringArrayDestroy(&menu->prompt);
+        ad_stringArrayDestroy(&menu->items);
         free(menu);
     }
 }
@@ -185,7 +190,7 @@ static int32_t ad_menuExecuteDirectlyInternal(const char *title, bool cancelable
     AD_RETURN_ON_NULL(options, AD_ERROR);
     AD_RETURN_ON_NULL(prompt, AD_ERROR);
 
-    menu = ad_menuCreate(title, prompt, cancelable, false);
+    menu = ad_menuCreate(title, cancelable, false, prompt);
     AD_RETURN_ON_NULL(menu, AD_ERROR);
 
     for (idx = 0; idx < optionCount; idx++) {
@@ -199,19 +204,19 @@ static int32_t ad_menuExecuteDirectlyInternal(const char *title, bool cancelable
 }
 
 int32_t ad_menuExecuteDirectly(const char *title, bool cancelable, size_t optionCount, const char *options[], const char *promptFormat, ...) {
-    __FORMAT_BUFFER(tmpPrompt, TMP_PROMPT_SIZE, promptFormat);
+    AD_FORMAT_BUFFER(tmpPrompt, TMP_PROMPT_SIZE, promptFormat);
     return ad_menuExecuteDirectlyInternal(title, cancelable, optionCount, options, tmpPrompt);
 }
 
 int32_t ad_yesNoBox(const char *title, bool cancelable, const char *promptFormat, ...) {
     const char *options[] = {"Yes", "No"};
-    __FORMAT_BUFFER(tmpPrompt, TMP_PROMPT_SIZE, promptFormat);
+    AD_FORMAT_BUFFER(tmpPrompt, TMP_PROMPT_SIZE, promptFormat);
     return ad_menuExecuteDirectlyInternal(title, cancelable, AD_ARRAY_SIZE(options), options, tmpPrompt);
 }
 
 int32_t ad_okBox(const char *title, bool cancelable, const char *promptFormat, ...) {
     const char *options[] = {"OK"};
-    __FORMAT_BUFFER(tmpPrompt, TMP_PROMPT_SIZE, promptFormat);
+    AD_FORMAT_BUFFER(tmpPrompt, TMP_PROMPT_SIZE, promptFormat);
     return ad_menuExecuteDirectlyInternal(title, cancelable, AD_ARRAY_SIZE(options), options, tmpPrompt);
 }
 
@@ -219,7 +224,7 @@ static size_t ad_progressBoxGetLongestLabelLength(ad_ProgressBox *pb) {
     size_t i = 0;
     size_t length = 0;
     for (i = 0; i < pb->itemCount; i++) {
-        length = AD_MAX(length, strlen(pb->items[i].label.text));
+        length = AD_MAX(length, strlen(pb->items[i].label));
     }
     return length;
 }
@@ -234,8 +239,8 @@ bool ad_progressBoxPaint (ad_ProgressBox *pb) {
     AD_RETURN_ON_NULL(pb, false);
 
     /* Get the length of the longest Prompt line */
-    promptHeight = (pb->prompt != NULL) ? pb->prompt->lineCount : 0;
-    promptWidth = (pb->prompt != NULL) ? ad_textElementArrayGetLongestLength(pb->prompt->lineCount, pb->prompt->lines) : 0;
+    promptHeight = pb->prompt.count;
+    promptWidth = promptHeight ? ad_stringArrayGetLongestLength(&pb->prompt) : 0;
 
     pb->labelWidth = ad_progressBoxGetLongestLabelLength(pb);
 
@@ -258,20 +263,23 @@ bool ad_progressBoxPaint (ad_ProgressBox *pb) {
         pb->boxWidth -= (pb->labelWidth + 1);
     }
 
-    if (pb->prompt) {   
-        ad_displayTextElementArray(pb->labelX, pb->boxY, ad_objectGetContentWidth(&pb->object), pb->prompt->lineCount, pb->prompt->lines);
-        pb->boxY += 1 + pb->prompt->lineCount;
+    if (promptHeight) {   
+        ad_displayStringArray(&pb->prompt, pb->labelX, pb->boxY, promptHeight, ad_objectGetContentWidth(&pb->object));
+        pb->boxY += 1 + promptHeight;
     }
 
     /* Draw the actual bar(s) */
     for (pbIndex = 0; pbIndex < pb->itemCount; pbIndex++) {
         uint16_t y = pb->boxY + pbIndex;
+
+        /* Need to set it again to trigger X calculation */
+        ad_progressBoxMultiUpdate(pb, pbIndex, pb->items[pbIndex].rawValue);
         ad_fill(pb->boxWidth,                   ad_s_con.progressChar, pb->boxX, pb->boxY + pbIndex, ad_s_con.progressBlankBg, ad_s_con.progressBlankFg);
         ad_fill(pb->items[pbIndex].currentX,    ad_s_con.progressChar, pb->boxX, pb->boxY + pbIndex, ad_s_con.progressFillBg,  ad_s_con.progressFillFg);
 
         /* Draw the bar labels ONLY if it's a multi-item box */
         if (pb->itemCount > 1) {
-            ad_displayStringCropped(pb->items[pbIndex].label.text, pb->labelX, y, pb->labelWidth, ad_s_con.objectBg, ad_s_con.objectFg);
+            ad_displayStringCropped(pb->items[pbIndex].label, pb->labelX, y, pb->labelWidth, ad_s_con.objectBg, ad_s_con.objectFg);
         }
     }
 
@@ -282,7 +290,7 @@ bool ad_progressBoxPaint (ad_ProgressBox *pb) {
 
 ad_ProgressBox *ad_progressBoxSingleCreate(const char *title, uint32_t maxProgress, const char *promptFormat, ...) {
     ad_ProgressBox *pb = NULL;
-    __FORMAT_BUFFER(tmpPrompt, TMP_PROMPT_SIZE, promptFormat);
+    AD_FORMAT_BUFFER(tmpPrompt, TMP_PROMPT_SIZE, promptFormat);
 
     pb = ad_progressBoxMultiCreate(title, "%s", tmpPrompt);
 
@@ -296,23 +304,29 @@ ad_ProgressBox *ad_progressBoxSingleCreate(const char *title, uint32_t maxProgre
 
 ad_ProgressBox *ad_progressBoxMultiCreate(const char *title, const char *promptFormat, ...) {
     ad_ProgressBox *pb = NULL;
-    __FORMAT_BUFFER(tmpPrompt, TMP_PROMPT_SIZE, promptFormat);
+    AD_FORMAT_BUFFER(tmpPrompt, TMP_PROMPT_SIZE, promptFormat);
 
     AD_RETURN_ON_NULL(title, NULL);
     AD_RETURN_ON_NULL(promptFormat, NULL);
     pb = calloc(1, sizeof(ad_ProgressBox));
     AD_RETURN_ON_NULL(pb, NULL);
 
-    pb->prompt = ad_multiLineTextCreate(tmpPrompt);
-    ad_textElementAssign(&pb->object.title, title);
+    if (!ad_stringArrayCreateFromString(&pb->prompt, tmpPrompt)) {
+        ad_progressBoxDestroy(pb);
+        return NULL;
+    }
+
+    ad_fixedTextElementAssign(pb->object.title, title);
     return pb;
 }
 
 void ad_progressBoxDestroy(ad_ProgressBox *pb) {
     if (pb) {
         ad_objectUnpaint(&pb->object);
-        ad_multiLineTextDestroy(pb->prompt);
-        free(pb->items);
+        ad_stringArrayDestroy(&pb->prompt);
+        if (pb->items) {
+            free(pb->items);
+        }
         free(pb);
     }
 }
@@ -388,7 +402,7 @@ size_t ad_progressBoxAddItem(ad_ProgressBox *obj, const char *label, uint32_t ma
     assert(obj->items);
 
     obj->items[obj->itemCount-1].outOf = maxProgress;
-    ad_textElementAssign(&obj->items[obj->itemCount-1].label, label);
+    ad_fixedTextElementAssign(obj->items[obj->itemCount-1].label, label);
 
     return obj->itemCount - 1;
 }
@@ -399,7 +413,7 @@ void ad_progressBoxSetMaxProgress(ad_ProgressBox *obj, size_t index, uint32_t ma
 }
 
 ad_Mixer *ad_mixerCreate(const char *title, const char *prompt, ...) {
-    __FORMAT_BUFFER(tmpPrompt, TMP_PROMPT_SIZE, prompt);
+    AD_FORMAT_BUFFER(tmpPrompt, TMP_PROMPT_SIZE, prompt);
     return (ad_Mixer *) ad_progressBoxMultiCreate(title, "%s", tmpPrompt);
 }
 
@@ -422,8 +436,8 @@ static void ad_mixerSelectItemAndDraw(ad_Mixer *mix, size_t newSelection) {
     uint16_t curY = mix->boxY + curSelection;
     uint16_t newY = mix->boxY + newSelection;
     
-    ad_displayStringCropped(mix->items[curSelection].label.text, mix->labelX, curY, mix->labelWidth, ad_s_con.objectBg, ad_s_con.objectFg);
-    ad_displayStringCropped(mix->items[newSelection].label.text, mix->labelX, newY, mix->labelWidth, ad_s_con.objectFg, ad_s_con.objectBg);
+    ad_displayStringCropped(mix->items[curSelection].label, mix->labelX, curY, mix->labelWidth, ad_s_con.objectBg, ad_s_con.objectFg);
+    ad_displayStringCropped(mix->items[newSelection].label, mix->labelX, newY, mix->labelWidth, ad_s_con.objectFg, ad_s_con.objectBg);
     mix->currentSelection = newSelection;
     hal_flush();
 }
@@ -489,7 +503,7 @@ int32_t ad_mixerExecute(ad_Mixer *mix, ad_MixerCallback cb) {
 }
 
 static inline void ad_textFileBoxRedrawLines(ad_TextFileBox *tfb) {
-    ad_displayTextElementArray(tfb->textX, tfb->textY, (size_t) tfb->lineWidth, (size_t) tfb->linesOnScreen, &tfb->lines->lines[tfb->currentIndex]);
+    ad_displayStringArrayRange(&tfb->lines, (size_t)tfb->currentIndex, (size_t) tfb->linesOnScreen, tfb->textX, tfb->textY, (size_t) tfb->lineWidth);
 }
 
 static bool ad_textFileBoxPaint(ad_TextFileBox *tfb) {
@@ -498,15 +512,15 @@ static bool ad_textFileBoxPaint(ad_TextFileBox *tfb) {
     AD_RETURN_ON_NULL(tfb, false);
 
     /* Get the length of the longest Text line */
-    lineWidth = ad_textElementArrayGetLongestLength(tfb->lines->lineCount, tfb->lines->lines);
+    lineWidth = ad_stringArrayGetLongestLength(&tfb->lines);
 
-    ad_objectInitialize(&tfb->object, lineWidth, tfb->lines->lineCount);
+    ad_objectInitialize(&tfb->object, lineWidth, tfb->lines.count);
 
     tfb->textX = ad_objectGetContentX(&tfb->object);
     tfb->textY = ad_objectGetContentY(&tfb->object);
     tfb->lineWidth = ad_objectGetContentWidth(&tfb->object);
     tfb->linesOnScreen = ad_objectGetContentHeight(&tfb->object);
-    tfb->highestIndex = tfb->lines->lineCount - tfb->linesOnScreen;
+    tfb->highestIndex = tfb->lines.count - tfb->linesOnScreen;
 
     ad_objectPaint(&tfb->object);
 
@@ -562,14 +576,10 @@ static ad_TextFileBox *ad_textFileBoxCreate(const char *title, const char *fileN
         goto error;
     }
     
-    ad_textElementAssign(&tfb->object.title, title);
-    ad_textElementAssign(&tfb->object.footer, AD_FOOTER_TEXTFILEBOX);
+    ad_fixedTextElementAssign(tfb->object.title, title);
+    ad_fixedTextElementAssign(tfb->object.footer, AD_FOOTER_TEXTFILEBOX);
     
-    tfb->lines = ad_multiLineTextCreate(fileBuffer);
-
-    if (tfb->lines == NULL) {
-        goto error;
-    }
+    if (!ad_stringArrayCreateFromString(&tfb->lines, fileBuffer)) goto error;
 
     ad_textFileBoxPaint(tfb);
 
@@ -630,7 +640,7 @@ static int32_t ad_textFileBoxExecute(ad_TextFileBox *tfb) {
 
 static void ad_textFileBoxDestroy(ad_TextFileBox *tfb) {
     if (tfb) {
-        ad_multiLineTextDestroy(tfb->lines);
+        ad_stringArrayDestroy(&tfb->lines);
         ad_objectUnpaint(&tfb->object);
         free(tfb);
     }
@@ -647,11 +657,11 @@ int32_t ad_textFileBox(const char *title, const char *fileName) {
 
 #if defined(POPEN)
 
-static void ad_commandBoxRedraw(const ad_TextElement *lines, size_t lineCount, uint16_t contentWidth, size_t index, uint16_t x, uint16_t y) {
+static void ad_commandBoxRedraw(const ad_StringArray *lines, size_t lineCount, uint16_t contentWidth, size_t index, uint16_t x, uint16_t y) {
     size_t curLine;
 
     for (curLine = 0; curLine < lineCount; curLine++) {
-        ad_displayStringCropped(lines[index % lineCount].text, x, y + curLine, contentWidth, ad_s_con.objectBg, ad_s_con.objectFg);
+        ad_displayStringCropped(ad_teaGetTextPtr(lines, index % lineCount), x, y + curLine, contentWidth, ad_s_con.objectBg, ad_s_con.objectFg);
         index++;
     }
 }
@@ -661,22 +671,26 @@ static void ad_commandBoxRedraw(const ad_TextElement *lines, size_t lineCount, u
 #endif
 
 int32_t ad_runCommandBox(const char *title, const char *command) {
-    ad_Object       obj;
-    ad_TextElement *lines = NULL;
-    size_t          visibleLines = ad_objectGetMaximumContentHeight() * 60 / 100;
-    size_t          lineWidth = ad_objectGetMaximumContentWidth() * 80 / 100;
-    size_t          lineDisplayIndex = 0;
-    size_t          lineWriteIndex = 0;
-    uint16_t        outputX = 0;
-    uint16_t        outputY = 0;
-    FILE*           pipe = NULL;
-    char           *newLineChar = NULL;
+    ad_Object           obj;
+    ad_StringArray      lines = { 0 };
+    size_t              visibleLines = ad_objectGetMaximumContentHeight() * 60 / 100;
+    size_t              lineWidth = ad_objectGetMaximumContentWidth() * 80 / 100;
+    size_t              lineDisplayIndex = 0;
+    size_t              lineWriteIndex = 0;
+    uint16_t            outputX = 0;
+    uint16_t            outputY = 0;
+    FILE*               pipe = NULL;
+    char                tmp[AD_TEXT_ELEMENT_SIZE] = "";
+    char               *newLineChar = NULL;
+    size_t              i;
 
     AD_RETURN_ON_NULL(command, AD_ERROR);
     AD_RETURN_ON_NULL(title, AD_ERROR);
 
-    ad_textElementAssign(&obj.title, title);
-    ad_textElementAssignFormatted(&obj.footer, "Running: '%s'...", command);
+    memset(&obj, 0, sizeof(obj));
+
+    ad_fixedTextElementAssign(obj.title, title);
+    ad_fixedTextElementAssignFormatted(obj.footer, "Running: '%s'...", command);
     ad_objectInitialize(&obj, lineWidth, visibleLines);
 
     lineWidth = ad_objectGetContentWidth(&obj);
@@ -687,23 +701,30 @@ int32_t ad_runCommandBox(const char *title, const char *command) {
 
     ad_objectPaint(&obj);
 
-    lines = calloc(visibleLines, sizeof(ad_TextElement));
-    AD_RETURN_ON_NULL(lines, AD_ERROR);
+    /* Create the TEA with our height */
 
+    for (i = 0; i < visibleLines; i++) {
+        if (!ad_stringArrayAddString(&lines, tmp, AD_TEXT_ELEMENT_SIZE)) {
+            ad_objectUnpaint(&obj);
+            ad_stringArrayDestroy(&lines);
+            return AD_ERROR;
+        }
+    }
+    
     /* Run the actual command */
     pipe = POPEN(command, "r");
 
-    while (fgets(lines[lineWriteIndex % visibleLines].text, AD_TEXT_ELEMENT_SIZE, pipe) != NULL) {
+    while (fgets(ad_stringArrayGet(&lines, lineWriteIndex % visibleLines), AD_TEXT_ELEMENT_SIZE, pipe) != NULL) {
         /* Fix newline */
-        newLineChar = strchr(lines[lineWriteIndex % visibleLines].text, '\n');
+        newLineChar = strchr(ad_stringArrayGet(&lines, lineWriteIndex % visibleLines), '\n');
         if (newLineChar) *newLineChar = 0x00;
         lineWriteIndex++;
         lineDisplayIndex++;
-        ad_commandBoxRedraw(lines, visibleLines, lineWidth, lineDisplayIndex, outputX, outputY);
+        ad_commandBoxRedraw(&lines, visibleLines, lineWidth, lineDisplayIndex, outputX, outputY);
     }
 
     ad_objectUnpaint(&obj);
-
+    ad_stringArrayDestroy(&lines);
     return WEXITSTATUS(PCLOSE(pipe));
 }
 #else
@@ -711,6 +732,7 @@ int32_t ad_runCommandBox(const char *title, const char *command) {
 int32_t ad_runCommandBox(const char *title, const char *command) {
     AD_UNUSED_PARAMETER(title);
     AD_UNUSED_PARAMETER(command);
+    assert(false && "runCommandBox not available on this platform");
     return AD_ERROR;
 }
 #endif
@@ -720,7 +742,7 @@ static size_t ad_multiSelectorOptionsGetLongestLength(ad_MultiSelector *menu) {
     size_t length = 0;
     for (i = 0; i < menu->itemCount; i++) {
         ad_MultiSelectorItem *op = &menu->itemOptions[i];
-        length = AD_MAX(length, ad_textElementArrayGetLongestLength(op->optionCount, op->options));
+        length = AD_MAX(length, ad_stringArrayGetLongestLength(&op->options));
     }
     return length;
 }
@@ -738,7 +760,7 @@ static void ad_displayMultiSelectorOptions(ad_MultiSelector *menu) {
     size_t maximumWidth = menu->optionWidth;
     for (i = 0; i < menu->itemCount; i++) {
         size_t selectedIndex = menu->itemOptions[i].selected;
-        ad_displayStringCropped(menu->itemOptions[i].options[selectedIndex].text, x, y, maximumWidth, ad_s_con.objectBg, ad_s_con.objectFg);
+        ad_displayStringCropped(ad_teaGetTextPtr(&menu->itemOptions[i].options, selectedIndex), x, y, maximumWidth, ad_s_con.objectBg, ad_s_con.objectFg);
         y++;
     }
     hal_flush();
@@ -747,7 +769,7 @@ static void ad_displayMultiSelectorOptions(ad_MultiSelector *menu) {
 static const char *ad_multiSelectorOptionText(ad_MultiSelector *menu, size_t itemIndex) {
     ad_MultiSelectorItem *item = &menu->itemOptions[itemIndex];
     assert(item);
-    return item->options[item->selected].text;
+    return ad_teaGetTextPtr(&item->options, item->selected);
 }
 
 static void ad_multiSelectorSelectOptionAndDraw(ad_MultiSelector *menu, size_t newSelection) {
@@ -764,12 +786,12 @@ static bool ad_multiSelectorPaint(ad_MultiSelector *menu) {
     size_t maximumPromptWidth = 0;
     size_t maximumItemWidth;
     size_t windowContentWidth;
-    size_t promptHeight = (menu->prompt != NULL) ? menu->prompt->lineCount : 0;
+    size_t promptHeight = menu->prompt.count;
     
     AD_RETURN_ON_NULL(menu, false);
 
     /* Get the length of the longest menu item */
-    maximumItemWidth = ad_textElementArrayGetLongestLength(menu->itemCount, menu->items);
+    maximumItemWidth = ad_stringArrayGetLongestLength(&menu->items);
       /* Get the length of the longest option item */
     menu->optionWidth = ad_multiSelectorOptionsGetLongestLength(menu);
     maximumItemWidth += 1 + menu->optionWidth;
@@ -777,8 +799,8 @@ static bool ad_multiSelectorPaint(ad_MultiSelector *menu) {
     windowContentWidth = maximumItemWidth + 2 * AD_MENU_ITEM_PADDING_H;
 
     /* Factor in the prompt length into window width calculation */
-    if (menu->prompt) {
-        maximumPromptWidth = ad_textElementArrayGetLongestLength(menu->prompt->lineCount, menu->prompt->lines);
+    if (promptHeight) {
+        maximumPromptWidth = ad_stringArrayGetLongestLength(&menu->prompt);
         windowContentWidth = AD_MAX(windowContentWidth, maximumPromptWidth);
     }
 
@@ -797,16 +819,16 @@ static bool ad_multiSelectorPaint(ad_MultiSelector *menu) {
     menu->itemY = menu->optionY;
 
     /* Print prompt if it exists */
-    if (menu->prompt) {   
+    if (promptHeight) {   
         uint16_t promptX = ad_objectGetContentX(&menu->object);
-        ad_displayTextElementArray(promptX, menu->itemY, ad_objectGetContentWidth(&menu->object), menu->prompt->lineCount, menu->prompt->lines);
-        menu->itemY   += 1 + menu->prompt->lineCount;
-        menu->optionY += 1 + menu->prompt->lineCount;
+        ad_displayStringArray(&menu->prompt, promptX, menu->itemY, promptHeight, ad_objectGetContentWidth(&menu->object));
+        menu->itemY   += 1 + promptHeight;
+        menu->optionY += 1 + promptHeight;
     }
 
     /* Print the menu items */
 
-    ad_displayTextElementArray(menu->itemX, menu->itemY, menu->itemWidth, menu->itemCount, menu->items);
+    ad_displayStringArray(&menu->items, menu->itemX, menu->itemY, menu->items.count, menu->itemWidth);
     ad_displayMultiSelectorOptions(menu);
 
     ad_multiSelectorSelectOptionAndDraw(menu, 0);
@@ -819,10 +841,14 @@ ad_MultiSelector *ad_multiSelectorCreate(const char *title, const char *prompt, 
     assert(menu);
 
     menu->cancelable = cancelable;
-    menu->prompt = ad_multiLineTextCreate(prompt);
+
+    if (!ad_stringArrayCreateFromString(&menu->prompt, prompt)) {
+        ad_multiSelectorDestroy(menu);
+        return NULL;
+    }
     
-    ad_textElementAssign(&menu->object.footer, menu->cancelable ? AD_FOOTER_MULTISELECTOR_CANCELABLE : AD_FOOTER_MULTISELECTOR);
-    ad_textElementAssign(&menu->object.title, title);
+    ad_fixedTextElementAssign(menu->object.footer, menu->cancelable ? AD_FOOTER_MULTISELECTOR_CANCELABLE : AD_FOOTER_MULTISELECTOR);
+    ad_fixedTextElementAssign(menu->object.title, title);
 
     return menu;
 }
@@ -862,47 +888,63 @@ int32_t ad_multiSelectorExecute(ad_MultiSelector *menu) {
     }
 }
 
-void ad_multiSelectorAddItem(ad_MultiSelector *obj, const char *label, size_t optionCount, size_t defaultOption, const char *options[]) {
-    ad_MultiSelectorItem *newItem;
+size_t ad_multiSelectorAddItem(ad_MultiSelector *obj, const char *label, size_t optionCount, size_t defaultOption, const char **options) {
+    ad_MultiSelectorItem newItem;
+    ad_MultiSelectorItem *newItemOptionsAlloc;
     size_t optionIndex;
 
-    if (obj == NULL || label == NULL ) return;
+    if (obj == NULL || label == NULL ) return SIZE_MAX;
 
     /* Compared to menu, we have to assign *both* the item label and *all* the options for it */
 
-    obj->itemCount++;
-    obj->items = ad_textElementArrayResize(obj->items, obj->itemCount);
-    obj->itemOptions = ad_multiSelectorOptionArrayResize(obj->itemOptions, obj->itemCount);
-    
-    assert(obj->items);
-    assert(obj->itemOptions);
-
-    ad_textElementAssign(&obj->items[obj->itemCount-1], label);
-    
-    newItem = &obj->itemOptions[obj->itemCount-1];
-    newItem->optionCount = optionCount;
-    newItem->selected = defaultOption;
-    newItem->options = ad_textElementArrayResize(newItem->options, optionCount);
-
-    assert(newItem->options);
+    /* Attempt to do a new item first */
+    memset(&newItem, 0, sizeof(newItem));
+    newItem.optionCount = optionCount;
+    newItem.selected = defaultOption;
 
     for (optionIndex = 0; optionIndex < optionCount; optionIndex++) {
-        ad_textElementAssign(&newItem->options[optionIndex], options[optionIndex]);
+        if (!ad_stringArrayAddString(&newItem.options, options[optionIndex], strlen(options[optionIndex]))) {
+            /* Alloc failed, try to salvage what we have */
+            goto error;
+        }
     }
+
+    /* Try to alloc and add a string to the multiselector items string array */
+    if (!ad_stringArrayAddString(&obj->items, label, strlen(label))) {
+        goto error;
+    }
+
+    /* Now let's try adding the itemOptions */
+    newItemOptionsAlloc = ad_multiSelectorOptionArrayResize(obj->itemOptions, obj->itemCount + 1);
+
+    if (newItemOptionsAlloc == NULL) {
+        goto error;
+    }
+
+    obj->itemCount++;
+    obj->itemOptions = newItemOptionsAlloc;
+    obj->itemOptions[obj->itemCount - 1] = newItem;
+    return obj->itemCount-1;
+error:
+    ad_stringArrayDestroy(&newItem.options);
+    return SIZE_MAX;
 }
 
 void ad_multiSelectorDestroy(ad_MultiSelector *menu) {
     if (menu) {
-        size_t itemIndex;
         ad_objectUnpaint(&menu->object);
-        ad_multiLineTextDestroy(menu->prompt);
-        if (menu->items) {
-            /* Compared to the regular menus, here we must also free the option textelements */
-            for (itemIndex = 0; itemIndex < menu->itemCount; itemIndex++) {
-                free(menu->itemOptions[itemIndex].options);
+        ad_stringArrayDestroy(&menu->prompt);
+
+        if (menu->itemOptions) {
+            size_t item;
+            for (item = 0; item < menu->itemCount; item++) {
+                ad_stringArrayDestroy(&menu->itemOptions[item].options);
             }
-            free(menu->items);
+            
+            free(menu->itemOptions);
         }
+
+        ad_stringArrayDestroy(&menu->items);
         free(menu);
     }
 }

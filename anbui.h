@@ -61,7 +61,7 @@ void            ad_restore              (void);
 /*  Deinitializes AnbUI and restores the system's original text console state. */
 void            ad_deinit               (void);
 /*  Sets the footer text on the screen */
-void            ad_setFooterText        (const char *footer);
+void            ad_setFooterText        (const char *footerFormat, ...);
 /*  Clears the footer on the screen*/
 void            ad_clearFooter          (void);
 
@@ -69,7 +69,7 @@ void            ad_clearFooter          (void);
     Cancelable means the menu can be cancelled using the ESC key.
     enableFKeys means that menuExecute will return if F1-F12 are pressed with that value.
     Must be deallocated with ad_menuDestroy */
-ad_Menu        *ad_menuCreate           (const char * title, const char *prompt, bool cancelable, bool enableFKeys);
+ad_Menu        *ad_menuCreate           (const char * title, bool cancelable, bool enableFKeys, const char *promptFormat, ...);
 /*  Adds an item to a menu. Returns AD_ERROR on error or the index of the newly added item on success. */
 int             ad_menuAddItemFormatted (ad_Menu *menu, const char *format, ...);
 /*  Returns the index of the currently selected menu item */
@@ -175,8 +175,9 @@ ad_MultiSelector *ad_multiSelectorCreate(const char *title, const char *prompt, 
                     2) AD_CANCELED for a cancelled menu (if menu was created as 'cancelable')
                     3) AD_ERROR if something blew up (null pointer or something) */
 int32_t         ad_multiSelectorExecute (ad_MultiSelector *menu);
-/*  Adds an item + options to the multi slelector menu */
-void            ad_multiSelectorAddItem (ad_MultiSelector *obj, const char *label, size_t optionCount, size_t defaultOption, const char *options[]);
+/*  Adds an item + options to the multi slelector menu.
+    Returns the index of the new item (SIZE_MAX on error) */
+size_t          ad_multiSelectorAddItem (ad_MultiSelector *obj, const char *label, size_t optionCount, size_t defaultOption, const char **options);
 /*  Deallocates the multi selector menu */
 void            ad_multiSelectorDestroy (ad_MultiSelector *menu);
 /*  Get the selected option for a multi selector item. */

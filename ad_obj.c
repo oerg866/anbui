@@ -14,6 +14,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <assert.h>
 #include <string.h>
 
@@ -24,7 +25,7 @@
 void ad_objectInitialize(ad_Object *obj, size_t contentWidth, size_t contentHeight) {
     assert(obj);
 
-    contentWidth = AD_MAX(contentWidth, strlen(obj->title.text));
+    contentWidth = AD_MAX(contentWidth, strlen(obj->title));
     contentWidth = AD_MIN(contentWidth, ad_objectGetMaximumContentWidth());
     contentHeight = AD_MIN(contentHeight, ad_objectGetMaximumContentHeight());
 
@@ -41,9 +42,13 @@ void ad_objectPaint(ad_Object *obj) {
     assert(obj);
 
     /* Print title */
-    ad_printCenteredText(obj->title.text, obj->x, obj->y, obj->width, ad_s_con.titleBg, ad_s_con.titleFg);
+    ad_printCenteredText(obj->title, obj->x, obj->y, obj->width, ad_s_con.titleBg, ad_s_con.titleFg);
 
-    ad_setFooterText(obj->footer.text);
+    /* User may have shown a footer already in the meantime. */
+    if (!obj->footerPrinted) {
+        ad_setFooterText(obj->footer);
+        obj->footerPrinted = true;
+    }
 
     y = obj->y + 1; /* Object body starts below title */
 
@@ -100,10 +105,11 @@ uint16_t ad_objectGetMaximumObjectWidth() {
     return ad_s_con.width;
 }
 
-void ad_setFooterText(const char *footer) {
-    if (footer != NULL) {
+void ad_setFooterText(const char *footerFormat, ...) {
+    AD_FORMAT_BUFFER(tmpFooter, AD_TEXT_ELEMENT_SIZE, footerFormat);
+    if (footerFormat != NULL) {
         ad_clearFooter();
-        ad_printCenteredText(footer, 0, ad_s_con.height - 1, ad_s_con.width, ad_s_con.footerBg, ad_s_con.footerFg);
+        ad_printCenteredText(tmpFooter, 0, ad_s_con.height - 1, ad_s_con.width, ad_s_con.footerBg, ad_s_con.footerFg);
     }
 }
 

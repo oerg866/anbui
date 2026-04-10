@@ -38,17 +38,21 @@ As I said, minimal code & ease of use is the focus here.
 
 ### GCC
 
-  `gcc -D_ANBUI_TEST_ -O3 -s -Wall -Wextra -pedantic -Werror -oanbui_test pl_linux.c ad_ui.c ad_obj.c ad_text.c anbui.c ad_test.c`
+  `gcc -D_ANBUI_TEST_ -O3 -s -Wall -Wextra -pedantic -Werror -oanbui_test pl_linux.c ad_ui.c ad_obj.c ad_text.c ad_state.c anbui.c ad_test.c`
 
 ## Windows
 
 ### MinGW
 
-  `gcc -D_ANBUI_TEST_ -O3 -s -Wall -Wextra -pedantic -Werror -oanbui_win.exe pl_win32.c ad_ui.c ad_obj.c ad_text.c anbui.c ad_test.c`
+  `gcc -D_ANBUI_TEST_ -O3 -s -Wall -Wextra -pedantic -Werror -oanbui_win.exe pl_win32.c ad_ui.c ad_obj.c ad_text.c ad_state.c anbui.c ad_test.c`
 
 ## API Reference
 
 Please look at [`anbui.h`](anbui.h).
+
+## Fixed Text Element size override
+
+Some things have a fixed text element size, which, if the platform is known to require more or less than the default, can be overridden with a compilier define (`AD_TEXT_ELEMENT_SIZE_OVERRIDE`)
 
 ## What's with the name...?
 

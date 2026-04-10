@@ -47,7 +47,11 @@
 
 #define AD_IS_F_KEY(ch) ((ch >= AD_KEY_F1) && (ch <= AD_KEY_F12))
 
+#ifndef AD_TEXT_ELEMENT_SIZE_OVERRIDE
 #define AD_TEXT_ELEMENT_SIZE 256
+#else
+#define AD_TEXT_ELEMENT_SIZE AD_TEXT_ELEMENT_SIZE_OVERRIDE
+#endif
 
 #define AD_CONTENT_MARGIN_H 2
 #define AD_CONTENT_MARGIN_V 1
@@ -63,6 +67,18 @@
 #define AD_FOOTER_TEXTFILEBOX       "Use Cursor UP / DOWN or Page UP / DOWN to navigate the text."
 
 /* Macros */
+
+/*  Macro to be put at the end of a variable declaration block at the start of a function
+    to format a prompt... This code pattern is used everywhere here so might as well deduplicate
+    it a bit .... */
+#define AD_FORMAT_BUFFER(bufName, bufSize, format) \
+    static char bufName[bufSize]; /* Static avoids stack issue on old platforms */ \
+    va_list vl; \
+    if (format != NULL) { \
+        va_start(vl, format); \
+        vsnprintf(bufName,bufSize,format,vl); \
+        va_end(vl); \
+    } \
 
 #define AD_UNUSED_PARAMETER(param) ((void)(param))
 
@@ -80,75 +96,75 @@
 
 /* Structures */
 
-typedef struct {
-    char                text[AD_TEXT_ELEMENT_SIZE];
-} ad_TextElement;
+typedef char ad_FixedTextElement[AD_TEXT_ELEMENT_SIZE];
 
 typedef struct {
-    size_t              lineCount;
-    ad_TextElement     *lines;
-} ad_MultiLineText;
+    size_t count;
+    size_t capacity;
+    char **items;
+} ad_StringArray;
 
 typedef struct {
     uint16_t            x;
     uint16_t            y;
     uint16_t            width;
     uint16_t            height;
-    ad_TextElement      title;
-    ad_TextElement      footer;
+    ad_FixedTextElement title;
+    ad_FixedTextElement footer;
+    bool                footerPrinted;
 } ad_Object;
 
 struct ad_TextFileBox {
-    ad_Object           object;
-    uint16_t            textX;
-    uint16_t            textY;
-    uint16_t            lineWidth;
-    int32_t             linesOnScreen;
-    int32_t             currentIndex;
-    int32_t             highestIndex;
-    ad_MultiLineText   *lines;
+    ad_Object               object;
+    uint16_t                textX;
+    uint16_t                textY;
+    uint16_t                lineWidth;
+    int32_t                 linesOnScreen;
+    int32_t                 currentIndex;
+    int32_t                 highestIndex;
+    ad_StringArray          lines;
 };
 
 typedef struct {
-    ad_TextElement      label;
-    uint32_t            rawValue;
-    uint32_t            outOf;
-    uint16_t            currentX;
+    ad_FixedTextElement     label;
+    uint32_t                rawValue;
+    uint32_t                outOf;
+    uint16_t                currentX;
 } ad_Progress;
 
 struct ad_ProgressBox {
-    ad_Object           object;
-    size_t              currentSelection;
-    size_t              itemCount;
-    ad_Progress        *items;
-    uint16_t            boxX;
-    uint16_t            boxY;
-    uint16_t            labelX;
-    uint16_t            labelWidth;
-    uint16_t            boxWidth;
-    ad_MultiLineText   *prompt;
+    ad_Object               object;
+    size_t                  currentSelection;
+    size_t                  itemCount;
+    ad_Progress            *items;
+    uint16_t                boxX;
+    uint16_t                boxY;
+    uint16_t                labelX;
+    uint16_t                labelWidth;
+    uint16_t                boxWidth;
+    ad_StringArray          prompt;
 };
 
 struct ad_Menu {
-    ad_Object           object;
-    bool                cancelable;
-    bool                enableFKeys;
-    bool                hasToScroll;
-    uint16_t            width;
-    uint16_t            height;
-    uint16_t            itemX;
-    uint16_t            itemY;
-    uint16_t            itemWidth;
-    size_t              currentSelection;
-    size_t              itemCount;
-    ad_MultiLineText   *prompt;
-    ad_TextElement     *items;
+    ad_Object               object;
+    bool                    cancelable;
+    bool                    enableFKeys;
+    bool                    hasToScroll;
+    uint16_t                width;
+    uint16_t                height;
+    uint16_t                itemX;
+    uint16_t                itemY;
+    uint16_t                itemWidth;
+    size_t                  currentSelection;
+    size_t                  itemCount;
+    ad_StringArray          prompt;
+    ad_StringArray          items;
 };
 
 typedef struct {
-    size_t optionCount;
-    size_t selected;
-    ad_TextElement *options;
+    size_t                  optionCount;
+    size_t                  selected;
+    ad_StringArray          options;
 } ad_MultiSelectorItem;
 
 struct ad_MultiSelector {
@@ -165,28 +181,28 @@ struct ad_MultiSelector {
     uint16_t                optionWidth;
     size_t                  currentSelection;
     size_t                  itemCount;
-    ad_MultiLineText       *prompt;
-    ad_TextElement         *items;
+    ad_StringArray          prompt;
+    ad_StringArray          items;
     ad_MultiSelectorItem   *itemOptions;
 };
 
 struct ad_ConsoleConfig {
-    uint16_t            width;
-    uint16_t            height;
-    uint8_t             headerBg;
-    uint8_t             headerFg;
-    uint8_t             titleBg;
-    uint8_t             titleFg;
-    uint8_t             footerBg;
-    uint8_t             footerFg;
-    uint8_t             objectBg;
-    uint8_t             objectFg;
-    uint8_t             progressBlankBg;
-    uint8_t             progressBlankFg;
-    uint8_t             progressFillBg;
-    uint8_t             progressFillFg;
-    char                progressChar;
-    uint8_t             backgroundFill;
+    uint16_t                width;
+    uint16_t                height;
+    uint8_t                 headerBg;
+    uint8_t                 headerFg;
+    uint8_t                 titleBg;
+    uint8_t                 titleFg;
+    uint8_t                 footerBg;
+    uint8_t                 footerFg;
+    uint8_t                 objectBg;
+    uint8_t                 objectFg;
+    uint8_t                 progressBlankBg;
+    uint8_t                 progressBlankFg;
+    uint8_t                 progressFillBg;
+    uint8_t                 progressFillFg;
+    char                    progressChar;
+    uint8_t                 backgroundFill;
 };
 
 extern struct ad_ConsoleConfig ad_s_con;
@@ -204,16 +220,19 @@ uint16_t            ad_objectGetMaximumContentHeight    (void);
 uint16_t            ad_objectGetMaximumObjectHeight     (void);
 uint16_t            ad_objectGetMaximumObjectWidth      (void);
 
-void                ad_textElementAssign                (ad_TextElement *el, const char *text);
-void                ad_textElementAssignFormatted       (ad_TextElement *el, const char *format, ...);
-ad_TextElement*     ad_textElementArrayResize           (ad_TextElement *ptr, size_t newCount);
-size_t              ad_textElementArrayGetLongestLength (size_t items, ad_TextElement *elements);
+void                ad_fixedTextElementAssign           (ad_FixedTextElement el, const char *text);
+void                ad_fixedTextElementAssignFormatted  (ad_FixedTextElement el, const char *format, ...);
+bool                ad_stringArrayAddString             (ad_StringArray *arr, const char *strStart, size_t len);
+char               *ad_stringArrayGet                   (ad_StringArray *arr, size_t index);
+char               *ad_stringArrayGetLast               (ad_StringArray *arr);
+size_t              ad_stringArrayGetLongestLength      (ad_StringArray *arr);
 
-ad_MultiLineText   *ad_multiLineTextCreate              (const char *str);
-void                ad_multiLineTextDestroy             (ad_MultiLineText *obj);
+bool                ad_stringArrayCreateFromString      (ad_StringArray *arr, const char *str);
+void                ad_stringArrayDestroy               (ad_StringArray *arr);
 
 void                ad_displayStringCropped             (const char *str, uint16_t x, uint16_t y, size_t maxLen, uint8_t bg, uint8_t fg);
-void                ad_displayTextElementArray          (uint16_t x, uint16_t y, size_t maximumWidth, size_t count, ad_TextElement *elements);
+void                ad_displayStringArrayRange          (const ad_StringArray *arr, size_t index, size_t count, uint16_t x, uint16_t y, size_t maximumWidth);
+void                ad_displayStringArray               (const ad_StringArray *arr, uint16_t x, uint16_t y, size_t maximumHeight, size_t maximumWidth);
 void                ad_printCenteredText                (const char *str, uint16_t x, uint16_t y, uint16_t w, uint8_t colBg, uint8_t colFg);
 
 void                ad_drawBackground                   (const char *title);

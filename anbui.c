@@ -22,7 +22,8 @@
 #include "ad_hal.h"
 
 ad_ConsoleConfig ad_s_con;
-ad_TextElement ad_s_title;
+ad_FixedTextElement ad_s_title = "";
+
 
 void ad_init(const char *title) {
     assert(title);
@@ -42,13 +43,13 @@ void ad_init(const char *title) {
     ad_progressBoxSetCharAndColor(' ', COLOR_BLACK, COLOR_BLACK, COLOR_RED, COLOR_RED);
     ad_initConsole(&ad_s_con);
 
-    ad_textElementAssign(&ad_s_title, title);
-    ad_drawBackground(ad_s_title.text);
+    ad_fixedTextElementAssign(ad_s_title, title);
+    ad_drawBackground(ad_s_title);
 }
 
 void ad_restore(void) {
     hal_restoreConsole();
-    ad_drawBackground(ad_s_title.text);
+    ad_drawBackground(ad_s_title);
 }
 
 void ad_deinit() {
