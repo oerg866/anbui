@@ -195,7 +195,7 @@ static int32_t ad_menuExecuteDirectlyInternal(const char *title, bool cancelable
     AD_RETURN_ON_NULL(options, AD_ERROR);
     AD_RETURN_ON_NULL(prompt, AD_ERROR);
 
-    menu = ad_menuCreate(title, cancelable, false, prompt);
+    menu = ad_menuCreate(title, cancelable, false, "%s", prompt); /* prompt is already formatted */
     AD_RETURN_ON_NULL(menu, AD_ERROR);
 
     for (idx = 0; idx < optionCount; idx++) {
