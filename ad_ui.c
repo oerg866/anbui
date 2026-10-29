@@ -135,7 +135,7 @@ size_t ad_menuGetSelectedItem(ad_Menu *obj) {
 bool ad_menuGetItemText(ad_Menu *obj, size_t index, char *dst, size_t dstSize) {
     AD_RETURN_ON_NULL(obj, false);
     AD_RETURN_ON_NULL(dst, false);
-    if (index > obj->itemCount) return false;
+    if (index >= obj->itemCount) return false;
     strncpy(dst, ad_teaGetTextPtr(&obj->items, index), dstSize - 1);
     dst[dstSize - 1] = 0x00;
     return true;    
@@ -516,7 +516,7 @@ int32_t ad_mixerExecute(ad_Mixer *mix, bool enableFKeys, ad_MixerCallback cb, vo
 
 uint32_t ad_mixerGetValue (ad_Mixer *mix, size_t index) {
     AD_RETURN_ON_NULL(mix, UINT32_MAX);
-    if (index > mix->itemCount) return false;
+    if (index >= mix->itemCount) return UINT32_MAX;
     return mix->items[index].rawValue;
 }
 
@@ -973,7 +973,7 @@ void ad_multiSelectorDestroy(ad_MultiSelector *menu) {
 size_t ad_multiSelectorGet(ad_MultiSelector *menu, size_t index) {
     AD_RETURN_ON_NULL(menu, 0);
 
-    if (index > menu->itemCount) {
+    if (index >= menu->itemCount) {
         return 0;
     }
 

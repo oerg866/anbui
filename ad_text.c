@@ -69,7 +69,7 @@ bool ad_stringArrayAddString(ad_StringArray *arr, const char *strStart, size_t l
 
 char *ad_stringArrayGet(ad_StringArray *arr, size_t index) {
     AD_RETURN_ON_NULL(arr, NULL);
-    if (index > arr->count) return NULL;
+    if (index >= arr->count) return NULL;
     return arr->items[index];
 }
 
