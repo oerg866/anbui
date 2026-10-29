@@ -158,8 +158,8 @@ void ad_displayStringCropped(const char *str, uint16_t x, uint16_t y, size_t max
 
 void ad_displayStringArrayRange(const ad_StringArray *arr, size_t index, size_t count, uint16_t x, uint16_t y, size_t maximumWidth) {
     size_t i;
-    for (i = index; i < count; i++) {
-        if (index >= arr->count) return;
+    for (i = index; i < index + count; i++) {
+        if (i >= arr->count) break;
         ad_displayStringCropped(arr->items[i], x, y, maximumWidth, ad_s_con.objectBg, ad_s_con.objectFg);
         y++;
     }
