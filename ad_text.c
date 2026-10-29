@@ -56,7 +56,7 @@ bool ad_stringArrayAddString(ad_StringArray *arr, const char *strStart, size_t l
 
     /* Failure; dispose of the string we just allocated because we don't have an array to hold its pointer in */
     if (newAlloc == NULL) {
-        free(newAlloc);
+        free(newString);
         return false;
     }
 
