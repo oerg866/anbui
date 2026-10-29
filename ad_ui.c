@@ -575,6 +575,11 @@ static ad_TextFileBox *ad_textFileBoxCreate(const char *title, const char *fileN
     /* Read whole file into buffer */
 
     fileBuffer = malloc((size_t) fileSize + 1);
+
+    if (fileBuffer == NULL) {
+        goto error;
+    }
+
     fileBuffer[fileSize] = 0x00;
 
     while (bytesRead < (size_t) fileSize) {
@@ -607,7 +612,7 @@ static ad_TextFileBox *ad_textFileBoxCreate(const char *title, const char *fileN
     return tfb;
 
 error:
-    fclose(inFile);
+    if (inFile != NULL) fclose(inFile);
     free(fileBuffer);
     ad_textFileBoxDestroy(tfb);
     return NULL;
