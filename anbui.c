@@ -25,7 +25,7 @@ ad_ConsoleConfig ad_s_con;
 ad_FixedTextElement ad_s_title = "";
 
 
-void ad_init(const char *title) {
+bool ad_init(const char *title) {
     assert(title);
 
     ad_s_con.width          = 0;
@@ -41,10 +41,13 @@ void ad_init(const char *title) {
     ad_s_con.backgroundFill = COLOR_BLUE;
 
     ad_progressBoxSetCharAndColor(' ', COLOR_BLACK, COLOR_BLACK, COLOR_RED, COLOR_RED);
-    ad_initConsole(&ad_s_con);
+    if (!ad_initConsole(&ad_s_con)) {
+        return false;
+    }
 
     ad_fixedTextElementAssign(ad_s_title, title);
     ad_drawBackground(ad_s_title);
+    return true;
 }
 
 void ad_restore(void) {

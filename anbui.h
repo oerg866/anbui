@@ -53,8 +53,9 @@ typedef ad_ProgressBox ad_Mixer;
 typedef void (*ad_MixerCallback)        (void *userData, size_t index, uint32_t value);
 
 /*  Initializes AnbUI.
-    This call is REQUIRED before using *ANY* other functions declared here. */
-void            ad_init                 (const char *title);
+    This call is REQUIRED before using *ANY* other functions declared here.
+    Returns false if the console could not be initialized, call ad_deinit in that case. */
+bool            ad_init                 (const char *title);
 /*  Restores AnbUI's text frontend.
     This is helpful if the user intends to run other commands in the same text display which outputs text on the screen. */
 void            ad_restore              (void);
