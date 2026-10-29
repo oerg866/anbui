@@ -65,7 +65,8 @@ bool ad_initConsole(ad_ConsoleConfig *cfg) {
     state.data_backup = calloc(1, state.bufSize);
     state.dataLimit = &state.data[state.width * state.height];
 
-    return (state.bufSize != 0 && state.data != NULL && state.data_backup == NULL);
+    /* Only missing buffers are fatal, 0-size console could be ok? */
+    return (state.data != NULL && state.data_backup != NULL);
 }
 
 void ad_deinitConsole(void) {
